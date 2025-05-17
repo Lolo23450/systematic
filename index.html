@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pixel Platformer Editor</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="canvasContainer">
+    <canvas id="game" width="1350" height="480"></canvas>
+    <button id="toggleControls" style="position:absolute; top:10px; right:10px; background:#444; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; z-index:10;">
+      Show Controls
+    </button>
+    <div id="controls" style="display:none; position:absolute; top:50px; right:10px; background:#222; padding:10px; border-radius:8px; z-index:10; flex-direction:column; gap:1em;">
+      <button id="playtestBtn" style="width:150px;">Playtest</button>
+      <button id="saveLevel"   style="width:150px;">Save All Levels</button>
+      <button id="loadLevel"   style="width:150px;">Load All Levels</button>
+    </div>
+  </div>
+  <div id="paletteWrapper" style="width:824px; margin:10px auto; background:#111; overflow:hidden;">
+    <div id="levelControls" style="text-align:center; margin:10px;">
+      <button id="prevLevel">← Prev Level</button>
+      <span id="levelLabel">Level 1</span>
+      <button id="nextLevel">Next Level →</button>
+      <button id="addLevel">+ Add Level</button>
+    </div>
+    <div id="Toolbar" style="display:flex; align-items:center; gap:0.5em; padding:8px; background:#222; margin:0 auto 10px; border-radius:4px; width:fit-content;">
+      <label style="color:#fff;">
+        <input id="tileSearch" type="text" placeholder="Name or ID…" style="padding:4px; margin-left:6px; width:200px;">
+      </label>
+      <label style="font-size:14px;">
+        Category:
+        <select id="categorySelector"></select>
+      </label>
+      <label>
+        Palette:
+        <select id="paletteSelector"></select>
+      </label>
+      <label>
+        Layer:
+        <select id="layerSelector">
+          <option value="1">Terrain</option>
+          <option value="0">Background</option>
+        </select>
+      </label>
+      <button id="openSpriteEditor" title="Create new sprite">
+        🖌️
+      </button>
+      <label for="loadSpriteLoader" style="margin-left:8px;cursor:pointer;">
+      📂 Load Sprites
+      <input type="file" id="loadSpriteLoader" accept=".json,.txt" style="display:none;" />
+    </label>
+    </div>
+    <div id="tileBrushes"></div>
+  </div>
+  <div id="tileProps">
+    <h3>Tile Properties</h3>
+    <p><strong>Pos:</strong> <span id="propXY"></span></p>
+    <div id="customProps"></div>
+    <button id="propApply">Apply</button>
+    <button id="propClose">Close</button>
+  </div>
+<div id="spriteEditorModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#111; padding:1em; border:1px solid #666; z-index:1000;">
+  <h3>New Sprite</h3>
+  <div id="spriteGrid" style="display:grid; grid-template-columns:repeat(10,30px); grid-template-rows:repeat(10,30px); gap:1px; margin-bottom:12px;"></div>
+  <div id="editorPaletteSwatch" style="margin-bottom:6px;"></div>
+  <input type="text" id="spriteEditorName" placeholder="Sprite name" style="width:50%; margin:0.5em 0;" />
+  <button id="spriteEditorSave">Save</button>
+  <button id="spriteEditorCancel">Cancel</button>
+</div>
+</body>
+<script src="editor.js"></script>
+</html>

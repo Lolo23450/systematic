@@ -1,0 +1,57 @@
+    html, body { margin: 0; background: #000; color: #fff; font-family: sans-serif; }
+    canvas { display: block; margin: auto; image-rendering: pixelated; border: 1px solid #444; }
+
+    /* all brushes default */
+    #tileBrushes canvas {
+      width: 64px;
+      height: 64px;
+      box-sizing: border-box;
+      border: 2px solid #fff;
+      margin: 2px;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+
+    /* the selected one */
+    #tileBrushes canvas.selected {
+      border-color: #ff0;  /* yellow */
+    }
+
+    /* hover effect */
+    #tileBrushes canvas:hover {
+      transform: scale(1.1);
+    }
+    
+    /* Sidebar sliding */
+    #tileProps {
+      position: fixed;
+      top: 0; left: -220px;
+      width: 220px; height: 100vh;
+      background: #222; color: #fff;
+      padding: 10px; overflow: hidden;
+      box-shadow: 2px 0 8px rgba(0,0,0,0.5);
+      transition: left .25s ease-in-out;
+      z-index: 20;
+    }
+    #tileProps.open {
+      left: 0;
+    }
+    /* Shift canvas area when sidebar opens */
+    #canvasContainer {
+      position: relative; left: 0;
+      transition: left .25s ease-in-out;
+    }
+    #canvasContainer.shifted {
+      left: 220px;
+    }
+
+    /* Palette grid */
+    #tileBrushes {
+      display: grid;
+      grid-template-columns: repeat(11, 68px);
+      grid-auto-rows: 68px;
+      gap: 4px;
+      overflow-y: auto;
+      padding: 10px;
+      box-sizing: border-box;
+    }

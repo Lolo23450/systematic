@@ -1,141 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Pixel Platformer Editor</title>
-  <style>
-    html, body { margin: 0; background: #000; color: #fff; font-family: sans-serif; }
-    canvas { display: block; margin: auto; image-rendering: pixelated; border: 1px solid #444; }
+/**
+ * Pixel Platformer Editor - Organized editor.js
+ */
 
-    /* all brushes default */
-    #tileBrushes canvas {
-      width: 64px;
-      height: 64px;
-      box-sizing: border-box;
-      border: 2px solid #fff;
-      margin: 2px;
-      cursor: pointer;
-      transition: transform 0.1s;
-    }
-
-    /* the selected one */
-    #tileBrushes canvas.selected {
-      border-color: #ff0;  /* yellow */
-    }
-
-    /* hover effect */
-    #tileBrushes canvas:hover {
-      transform: scale(1.1);
-    }
-    
-    /* Sidebar sliding */
-    #tileProps {
-      position: fixed;
-      top: 0; left: -220px;
-      width: 220px; height: 100vh;
-      background: #222; color: #fff;
-      padding: 10px; overflow: hidden;
-      box-shadow: 2px 0 8px rgba(0,0,0,0.5);
-      transition: left .25s ease-in-out;
-      z-index: 20;
-    }
-    #tileProps.open {
-      left: 0;
-    }
-    /* Shift canvas area when sidebar opens */
-    #canvasContainer {
-      position: relative; left: 0;
-      transition: left .25s ease-in-out;
-    }
-    #canvasContainer.shifted {
-      left: 220px;
-    }
-
-    /* Palette grid */
-    #tileBrushes {
-      display: grid;
-      grid-template-columns: repeat(11, 68px);
-      grid-auto-rows: 68px;
-      gap: 4px;
-      overflow-y: auto;
-      padding: 10px;
-      box-sizing: border-box;
-    }
-  </style>
-</head>
-<body>
-  <!-- 1) Canvas + Controls -->
-  <div id="canvasContainer">
-    <canvas id="game" width="1350" height="480"></canvas>
-    <button id="toggleControls" style="position:absolute; top:10px; right:10px; background:#444; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; z-index:10;">
-      Show Controls
-    </button>
-    <div id="controls" style="display:none; position:absolute; top:50px; right:10px; background:#222; padding:10px; border-radius:8px; z-index:10; flex-direction:column; gap:1em;">
-      <button id="playtestBtn" style="width:150px;">Playtest</button>
-      <button id="saveLevel"   style="width:150px;">Save All Levels</button>
-      <button id="loadLevel"   style="width:150px;">Load All Levels</button>
-    </div>
-  </div>
-
-  <!-- 2) Palette & Level Controls -->
-  <div id="paletteWrapper" style="width:824px; margin:10px auto; background:#111; overflow:hidden;">
-    <div id="levelControls" style="text-align:center; margin:10px;">
-      <button id="prevLevel">← Prev Level</button>
-      <span id="levelLabel">Level 1</span>
-      <button id="nextLevel">Next Level →</button>
-      <button id="addLevel">+ Add Level</button>
-    </div>
-
-    <div id="Toolbar" style="display:flex; align-items:center; gap:0.5em; padding:8px; background:#222; margin:0 auto 10px; border-radius:4px; width:fit-content;">
-      <label style="color:#fff;">
-        <input id="tileSearch" type="text" placeholder="Name or ID…" style="padding:4px; margin-left:6px; width:200px;">
-      </label>
-      <label style="font-size:14px;">
-        Category:
-        <select id="categorySelector"></select>
-      </label>
-      <label>
-        Palette:
-        <select id="paletteSelector"></select>
-      </label>
-      <label>
-        Layer:
-        <select id="layerSelector">
-          <option value="1">Terrain</option>
-          <option value="0">Background</option>
-        </select>
-      </label>
-      <button id="openSpriteEditor" title="Create new sprite">
-        🖌️
-      </button>
-      <label for="loadSpriteLoader" style="margin-left:8px;cursor:pointer;">
-      📂 Load Sprites
-      <input type="file" id="loadSpriteLoader" accept=".json,.txt" style="display:none;" />
-    </label>
-    </div>
-
-    <div id="tileBrushes"></div>
-  </div>
-
-  <!-- 3) Sidebar -->
-  <div id="tileProps">
-    <h3>Tile Properties</h3>
-    <p><strong>Pos:</strong> <span id="propXY"></span></p>
-    <div id="customProps"></div>
-    <button id="propApply">Apply</button>
-    <button id="propClose">Close</button>
-  </div>
-<div id="spriteEditorModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#111; padding:1em; border:1px solid #666; z-index:1000;">
-  <h3>New Sprite</h3>
-  <div id="spriteGrid" style="display:grid; grid-template-columns:repeat(10,30px); grid-template-rows:repeat(10,30px); gap:1px; margin-bottom:12px;"></div>
-  <div id="editorPaletteSwatch" style="margin-bottom:6px;"></div>
-  <input type="text" id="spriteEditorName" placeholder="Sprite name" style="width:50%; margin:0.5em 0;" />
-  <button id="spriteEditorSave">Save</button>
-  <button id="spriteEditorCancel">Cancel</button>
-</div>
-</body>
-  <script>
-    // --- CORE SETTINGS ---
+// ==========================
+// === Declarations & Setup ===
+// ==========================
+// --- CORE SETTINGS ---
     const canvas = document.getElementById("game");
     const ctx    = canvas.getContext("2d");
 
@@ -892,7 +762,12 @@ const originalBuiltInCount = sprites.length;
 
 
     // initialize with one blank level:
-    function makeEmptyLevel() {
+    
+
+// ==========================
+// === Module: Functions ===
+// ==========================
+function makeEmptyLevel() {
       return Array.from({ length: mapRows }, () =>
         Array.from({ length: mapCols }, () =>
           new Array(layerCount).fill(0)
@@ -1828,7 +1703,7 @@ const originalBuiltInCount = sprites.length;
     const grid    = document.getElementById('spriteGrid');
     const nameInp = document.getElementById('spriteEditorName');
     const saveBtn = document.getElementById('spriteEditorSave');
-    const cancelB = document.getElementById('spriteEditorCancel');
+    const cancelBtn = document.getElementById('spriteEditorCancel');
 
     let editData = [];
 
@@ -1885,7 +1760,7 @@ const originalBuiltInCount = sprites.length;
       nameInp.value = '';
       modal.style.display = 'block';
     });
-    cancelB.addEventListener('click', () => {
+    cancelBtn.addEventListener('click', () => {
       modal.style.display = 'none';
     });
     saveBtn.addEventListener('click', () => {
@@ -2003,7 +1878,3 @@ const originalBuiltInCount = sprites.length;
     // --- STARTUP ---
     createTileBrushes();
     update();  // kick off main loop
-
-  </script>
-</body>
-</html>
