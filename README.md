@@ -83,7 +83,8 @@ A web-based **pixel platformer level editor** and playtester—fully in your bro
 - **Left-click & drag**: paint current tile  
 - **Right-click**: open tile properties sidebar  
 - **Mouse wheel**: zoom in/out  
-- **Arrow keys / WASD**: pan camera  
+- **Arrow keys / WASD**: pan camera
+- **Ctrl+Z / Ctrl+Y**: Undo / Redo
 
 ### Toolbar  
 - **Tile Search**: filter brushes by name or ID  
