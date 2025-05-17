@@ -397,6 +397,109 @@ const originalBuiltInCount = sprites.length;
       canvasContainer.classList.remove("shifted");
     };
 
+    // ◾️ After `const db = firebase.database();`
+    const browseBtn   = document.getElementById('browseShared');
+    const sharedModalBackdrop = document.getElementById('sharedModalBackdrop');
+    const sharedList  = document.getElementById('sharedList');
+    const closeBtn    = document.getElementById('closeShared');
+
+    // helper: convert Firebase shape to editor shape
+    function normalizeLevelData(raw) {
+      // raw is [ [ [id0,id1], ... ], ... ] for each row
+      return raw.map(row =>
+        row.map(cell => {
+          if (Array.isArray(cell) && cell.length >= 2) {
+            // interpret [layer0, layer1] 
+            return [ cell[0], cell[1] ];
+          } else {
+            // fallback: empty cell
+            return [0, 0];
+          }
+        })
+      );
+    }
+
+    // helper: draw a mini‐preview into a canvas
+    function makePreviewCanvas(levelGrid, cols, rows) {
+      const preview = document.createElement('canvas');
+      preview.width = cols;
+      preview.height= rows;
+      const pctx = preview.getContext('2d');
+      const tileW = 2, tileH = 2; // each tile = 2×2 px
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          const [bg, fg] = levelGrid[y][x];
+          const color = palette[ fg ] || darkPalette[ bg ] || '#000';
+          pctx.fillStyle = color;
+          pctx.fillRect(x*tileW, y*tileH, tileW, tileH);
+        }
+      }
+      preview.style.border = '1px solid #555';
+      preview.style.marginRight = '8px';
+      return preview;
+    }
+
+    browseBtn.addEventListener('click', async () => {
+      sharedList.innerHTML = '<li>Loading…</li>';
+        sharedModalBackdrop.style.display = 'flex';
+
+      try {
+        const snapshot = await db.ref('levels')
+                                .orderByKey()
+                                .limitToLast(20)
+                                .once('value');
+        const data = snapshot.val() || {};
+        sharedList.innerHTML = '';
+
+        const entries = Object.entries(data).reverse();
+        if (!entries.length) {
+          sharedList.innerHTML = '<li>No shared levels yet.</li>';
+          return;
+        }
+
+        entries.forEach(([key, raw]) => {
+          // raw is an array[row][col] of [id0,id1]
+          const norm = normalizeLevelData(raw);
+          const rows = norm.length;
+          const cols = norm[0]?.length || 0;
+
+          const li = document.createElement('li');
+          li.style.display = 'flex';
+          li.style.alignItems = 'center';
+          li.style.padding = '0.5em 0';
+          li.style.borderBottom = '1px solid #444';
+          li.style.cursor = 'pointer';
+
+          // preview thumbnail
+          const thumb = makePreviewCanvas(norm, cols, rows);
+          li.appendChild(thumb);
+
+          // label
+          const lbl = document.createElement('span');
+          lbl.textContent = key;
+          li.appendChild(lbl);
+
+          li.addEventListener('click', () => {
+            // overwrite entire levels array with a single‐level pack
+            levels = [ norm ];
+            currentLevel = 0;
+            level = levels[0];
+            refreshLevelLabel();
+            sharedModal.style.display = 'none';
+            updateURLState();
+          });
+
+          sharedList.appendChild(li);
+        });
+      } catch (err) {
+        sharedList.innerHTML = `<li style="color:red">Error: ${err.message}</li>`;
+      }
+    });
+
+    closeBtn.addEventListener('click', () => {
+      sharedModalBackdrop.style.display = 'none';
+    });
+
     let isPainting = false;
     let currentLayer = 1;  // 0 = background, 1 = terrain, 2 = objects
 

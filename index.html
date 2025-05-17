@@ -18,6 +18,7 @@
       <input type="file" id="loadLevelFile" accept=".json" style="display:none" />
       <button onclick="uploadCurrentLevel()">Upload Level</button>
       <button onclick="loadLevelFromFirebase()">Load Shared Level</button>
+      <button id="browseShared">Browse Shared Levels</button>
     </div>
   </div>
   <div id="paletteWrapper" style="width:824px; margin:10px auto; background:#111; overflow:hidden;">
@@ -70,6 +71,19 @@
   <input type="text" id="spriteEditorName" placeholder="Sprite name" style="width:50%; margin:0.5em 0;" />
   <button id="spriteEditorSave">Save</button>
   <button id="spriteEditorCancel">Cancel</button>
+</div>
+<button id="browseShared">Browse Shared Levels</button>
+<!-- Modal backdrop & window -->
+<div id="sharedModalBackdrop">
+  <div id="sharedModal">
+    <header>Shared Levels</header>
+    <ul id="sharedList">
+      <!-- populated dynamically -->
+    </ul>
+    <footer>
+      <button id="closeShared">Close</button>
+    </footer>
+  </div>
 </div>
 </body>
 <script src="https://cdn.jsdelivr.net/npm/lz-string/libs/lz-string.min.js"></script>

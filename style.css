@@ -55,3 +55,94 @@
       padding: 10px;
       box-sizing: border-box;
     }
+
+    /* Ensure the backdrop covers the screen and centers the modal */
+    #sharedModalBackdrop {
+      display: none;              /* hidden by default */
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Modal window styling (no change needed here if you like it) */
+    #sharedModal {
+      background: #1e1e1e;
+      color: #eee;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.7);
+      box-sizing: border-box;    /* include padding in width calculations */
+    }
+
+    #sharedList {
+      list-style: none;
+      margin: 0;
+      padding: 0.5rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    #sharedList li {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;   /* force left alignment */
+      gap: 0.75rem;                  /* consistent spacing between canvas and text */
+      text-align: left;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #333;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    #sharedList li:hover {
+      background: rgba(255,255,255,0.05);
+    }
+
+    #sharedList canvas {
+      width: 64px;
+      height: 48px;
+      flex-shrink: 0;
+      border: 1px solid #444;
+      border-radius: 4px;
+    }
+
+    #sharedList span {
+      font-size: 1rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex-grow: 1; /* make it take up the rest of the row */
+    }
+
+    /* Header/Footer buttons (no change) */
+    #sharedModal header,
+    #sharedModal footer {
+      padding: 1rem;
+      background: #272727;
+      border-bottom: 1px solid #444;
+    }
+    #sharedModal footer {
+      border-top: 1px solid #444;
+      text-align: right;
+    }
+    #sharedModal footer button {
+      background: #444;
+      color: #eee;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #sharedModal footer button:hover {
+      background: #555;
+}
