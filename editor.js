@@ -1138,7 +1138,7 @@ const originalBuiltInCount = sprites.length;
         "Cobblestone":[0,7,8,9,10,11,12,13,14],
         "Wood":       [0,21,22],
         "Ancient Stones":[5,6,15,16,17,18,19,20,32,33,34],
-        "Other":      [0,23,27,28,31],
+        "Other":      [0,23,27,28,31,36],
         // now "Painted" only contains indices of sprites you added
         "Painted":    painted
       };
