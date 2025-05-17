@@ -386,6 +386,14 @@ const originalBuiltInCount = sprites.length;
       // save back
       tilePropsData[key] = data;
 
+      const oldProps = {...tilePropsData[key]}; 
+      tilePropsData[key] = newProps;
+
+      // record as a special action
+      undoStack.push({ type:'prop', key, oldProps, newProps });
+      if (undoStack.length>MAX_HISTORY) undoStack.shift();
+      redoStack.length = 0;
+
       // close sidebar
       tileProps.classList.remove("open");
       canvasContainer.classList.remove("shifted");
@@ -552,7 +560,14 @@ const originalBuiltInCount = sprites.length;
       buildAnimatedCache();
     });
 
-    window.addEventListener("keydown", e => { keys[e.key] = true; });
+    window.addEventListener('keydown', e => {
+      if ((e.ctrlKey||e.metaKey) && e.key === 'z') {
+        e.preventDefault(); undo();
+      }
+      if ((e.ctrlKey||e.metaKey) && e.key === 'y') {
+        e.preventDefault(); redo();
+      }
+    });
     window.addEventListener("keyup",   e => { keys[e.key] = false; });
 
     function encodeLevels(levels) {
@@ -614,13 +629,56 @@ const originalBuiltInCount = sprites.length;
       tilePropsData[`${currentLevel}-${x}-${y}-${currentLayer}`] = { text: txt };
     }
 
+    const undoStack = [];
+    const redoStack = [];
+    const MAX_HISTORY = 100;  // cap to save memory
+
     // tile brush
     function paintAt(e) {
       const x = Math.floor((e.offsetX + camX) / tileSize);
       const y = Math.floor((e.offsetY + camY) / tileSize);
-      if (x < 0 || y < 0 || x >= mapCols || y >= mapRows) return;
+      if (x<0||y<0||x>=mapCols||y>=mapRows) return;
+      const layer = currentLayer;
+      const oldTile = level[y][x][layer];
+      const newTile = currentTile;
+      if (oldTile === newTile) return;
+
+      // record action
+      undoStack.push({ x,y,layer, oldTile, newTile });
+      if (undoStack.length > MAX_HISTORY) undoStack.shift();
+      redoStack.length = 0;  // clear redo on new action
+
+      // apply
+      level[y][x][layer] = newTile;
       updateURLState();
-      level[y][x][currentLayer] = currentTile;
+    }
+
+    function undo() {
+      if (!undoStack.length) return;
+      const action = undoStack.pop();
+      redoStack.push(action);
+
+      if (action.type === 'prop') {
+        tilePropsData[action.key] = action.oldProps;
+        redrawTilePropsUIIfOpen();  // optional
+      } else {
+        const {x,y,layer, oldTile} = action;
+        level[y][x][layer] = oldTile;
+      }
+    }
+
+    function redo() {
+      if (!redoStack.length) return;
+      const action = redoStack.pop();
+      undoStack.push(action);
+
+      if (action.type === 'prop') {
+        tilePropsData[action.key] = action.newProps;
+        redrawTilePropsUIIfOpen();
+      } else {
+        const {x,y,layer, newTile} = action;
+        level[y][x][layer] = newTile;
+      }
     }
 
     const SPIKE_BASE_ID = 28;
