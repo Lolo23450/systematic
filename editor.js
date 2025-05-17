@@ -485,8 +485,8 @@ const originalBuiltInCount = sprites.length;
             currentLevel = 0;
             level = levels[0];
             refreshLevelLabel();
-            sharedModal.style.display = 'none';
             updateURLState();
+            sharedModalBackdrop.style.display = "none"
           });
 
           sharedList.appendChild(li);
