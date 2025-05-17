@@ -49,7 +49,7 @@ A web‐based **pixel platformer level editor** and playtester—fully in your b
 ## 📦 Installation
 
 1. Clone or download this repo  
-2. Open `index.html` (or `pixel_platformer_editor_upscaled.html`) in any modern browser  
+2. Open `index.html` in any modern browser  
 3. Start editing—no build step required!
 
 ---
