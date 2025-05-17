@@ -229,7 +229,24 @@ const originalBuiltInCount = sprites.length;
     });
 
     document.getElementById("saveLevel").addEventListener("click", saveLevel);
-    document.getElementById("loadLevel").addEventListener("click", loadLevel);
+
+    // wire the file‐input
+    document.getElementById("loadLevel").addEventListener("click", () => {
+      const input = document.createElement("input");
+      input.type  = "file";
+      input.accept= ".json";
+      input.onchange = e => {
+        const f = e.target.files[0];
+        if (f) loadAllLevelsFromFile(f);
+      };
+      input.click();
+    });
+
+    // (optional) add a “Restore Last Save” button:
+    const restoreBtn = document.createElement("button");
+    restoreBtn.textContent = "Restore Last Save";
+    restoreBtn.onclick   = loadAllLevelsFromStorage;
+    document.getElementById("levelControls").appendChild(restoreBtn);
 
     // Populate category dropdown
     const catSel = document.getElementById("categorySelector");
@@ -434,6 +451,26 @@ const originalBuiltInCount = sprites.length;
     window.addEventListener("keydown", e => { keys[e.key] = true; });
     window.addEventListener("keyup",   e => { keys[e.key] = false; });
 
+    function encodeLevels(levels) {
+      const json = JSON.stringify(levels);
+      return LZString.compressToEncodedURIComponent(json);
+    }
+
+    // decompress from the URL back into a JS array (or null on failure)
+    function decodeLevels(hash) {
+      try {
+        const json = LZString.decompressFromEncodedURIComponent(hash);
+        return JSON.parse(json);
+      } catch {
+        return null;
+      }
+    }
+
+    function updateURLState() {
+      const hash = encodeLevels(levels);
+      history.replaceState(null, "", "#" + hash);
+    }
+
     // Only darken valid 6-digit hex colors; pass others through
     function darkenHex(col, factor) {
       // If it’s not a "#xxxxxx" string, return it unchanged
@@ -472,7 +509,7 @@ const originalBuiltInCount = sprites.length;
       const x = Math.floor((e.offsetX + camX) / tileSize);
       const y = Math.floor((e.offsetY + camY) / tileSize);
       if (x < 0 || y < 0 || x >= mapCols || y >= mapRows) return;
-
+      updateURLState();
       level[y][x][currentLayer] = currentTile;
     }
 
@@ -666,32 +703,67 @@ const originalBuiltInCount = sprites.length;
       return [x, y];
     }
 
-        // --- SAVE / LOAD & GENERATE ---
+    // --- SAVE / LOAD & GENERATE ---
     function saveAllLevels() {
-      const data = JSON.stringify(levels);
-      console.log("All Levels JSON:", data);
-      alert("All levels logged to console.");
+      const json = JSON.stringify(levels);
+      // 1) persist in browser
+      localStorage.setItem(SAVED_KEY, json);
+
+      // 2) trigger download
+      const blob = new Blob([json], { type: "application/json" });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href     = url;
+      a.download = "levels.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      alert("Levels saved! ✅");
     }
 
-    function loadAllLevels() {
-      const json = prompt("Paste levels JSON here:");
+        function loadAllLevelsFromStorage() {
+      const stored = localStorage.getItem(SAVED_KEY);
+      if (!stored) return alert("No saved levels in browser!");
       try {
-        const arr = JSON.parse(json);
-        if (Array.isArray(arr)) {
+        const arr = JSON.parse(stored);
+        if (!Array.isArray(arr)) throw "Bad format";
+        levels = arr;
+        currentLevel = 0;
+        level = levels[0];
+        refreshLevelLabel();
+        updateURLState();
+        alert("Levels loaded from browser storage!");
+      } catch (e) {
+        alert("Failed to load saved levels: " + e);
+      }
+    }
+
+    // file‐input loader (optional, for importing shared .json files)
+    function loadAllLevelsFromFile(file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const arr = JSON.parse(reader.result);
+          if (!Array.isArray(arr)) throw "Not an array";
           levels = arr;
           currentLevel = 0;
           level = levels[0];
           refreshLevelLabel();
-          alert("Levels loaded!");
-        } else throw "Not an array";
-      } catch (e) {
-        alert("Invalid JSON.");
-      }
+          updateURLState();
+          alert(`Imported ${arr.length} levels from file! 📂`);
+          // also auto-save into localStorage:
+          localStorage.setItem(SAVED_KEY, reader.result);
+        } catch (err) {
+          alert("Invalid level file: " + err);
+        }
+      };
+      reader.readAsText(file);
     }
 
     document.getElementById("saveLevel").textContent = "Save All Levels";
     document.getElementById("saveLevel").onclick = saveAllLevels;
-    document.getElementById("loadLevel").onclick = loadAllLevels;
 
     // Always read from the active level:
     function getCell(col, row, layer) {
@@ -1262,6 +1334,48 @@ const originalBuiltInCount = sprites.length;
 
       reader.readAsText(file);
       e.target.value = '';
+    });
+
+    // === Auto-load from localStorage ===
+    const SAVED_KEY = "pixelPlatformerLevels";
+    const stored = localStorage.getItem(SAVED_KEY);
+    if (stored) {
+      try {
+        const arr = JSON.parse(stored);
+        if (Array.isArray(arr)) {
+          levels = arr;
+          currentLevel = 0;
+          level = levels[0];
+        }
+      } catch (e) {
+        console.warn("Could not parse saved levels:", e);
+      }
+    }
+    refreshLevelLabel();
+
+    // Try to load from hash
+    if (location.hash.length > 1) {
+      const imported = decodeLevels(location.hash.slice(1));
+      if (Array.isArray(imported)) {
+        levels = imported;
+        currentLevel = 0;
+        level = levels[0];
+      }
+    }
+    // Update UI & caches
+    refreshLevelLabel();
+    createTileBrushes();
+
+    // Watch for manual hash changes (e.g. user pastes a link)
+    window.addEventListener("hashchange", () => {
+      const imported = decodeLevels(location.hash.slice(1));
+      if (Array.isArray(imported)) {
+        levels = imported;
+        currentLevel = 0;
+        level = levels[0];
+        refreshLevelLabel();
+        dirtyTiles.clear();
+      }
     });
 
     // --- STARTUP ---
