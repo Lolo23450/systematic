@@ -17,6 +17,8 @@ A web‐based **pixel platformer level editor** and playtester—fully in your b
   – Paint terrain, background, objects, spikes, bounce pads, platforms, text tiles, and more.  
   – Click-and-drag painting; right-click tiles custom properties.
 
+  ![Grid](assets/readme-imgs/grid.png)
+
 - **Multi-level support**  
   – Create, rename, navigate, and delete levels.  
   – Save & load **all** levels as JSON.
