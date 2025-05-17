@@ -1,20 +1,27 @@
-# Pixel Platformer Editor
+# Systematic
+https://lolo23450.github.io/systematic/
 
 A web‐based **pixel platformer level editor** and playtester—fully in your browser. Create, edit, sprite, and play your own 2D platformer levels without writing a single line of engine code!
 
 ---
 
-## 🚀 Features
+## Features
+
+- **Tile Palette & Tile Categories**
+  - 30+ Tiles organized in different categories.
+  - Fully expandable using UI.
+ 
+  ![Palette UI](assets/tilepalette.png)
 
 - **Grid-based tile editor**  
-  – Paint terrain, background, objects, spikes, bounce pads, one-way platforms, text tiles, and more.  
-  – Click-and-drag painting; right-click custom properties.
+  – Paint terrain, background, objects, spikes, bounce pads, platforms, text tiles, and more.  
+  – Click-and-drag painting; right-click tiles custom properties.
 
 - **Multi-level support**  
   – Create, rename, navigate, and delete levels.  
   – Save & load **all** levels as JSON.
 
-- **Custom palettes**  
+- **Custom color palettes**  
   – 10+ built-in palettes (Forest, Desert, Tundra, Swamp, …).  
   – Live preview & palette swatches in the sprite editor.
 
@@ -31,11 +38,6 @@ A web‐based **pixel platformer level editor** and playtester—fully in your b
   – Assign palette indices and give each sprite a name.  
   – Load & merge external sprite JSON files.
 
-- **Text Tiles**  
-  – Place configurable text anywhere in the level.  
-  – Auto-resize background box to fit long strings.  
-  – Edit text later via right-click properties.
-
 - **Custom tile properties**  
   – Bounce pads: adjustable jump strength.  
   – One-way platforms: toggle “allow drop” (press S).  
@@ -46,7 +48,7 @@ A web‐based **pixel platformer level editor** and playtester—fully in your b
 
 ---
 
-## 📦 Installation
+## Installation
 
 1. Clone or download this repo  
 2. Open `index.html` in any modern browser  
@@ -54,7 +56,7 @@ A web‐based **pixel platformer level editor** and playtester—fully in your b
 
 ---
 
-## 🎮 Controls
+## Controls
 
 ### Editor Mode
 
@@ -101,7 +103,7 @@ A web‐based **pixel platformer level editor** and playtester—fully in your b
 
 ---
 
-## 📝 License & Attribution
+## License & Attribution
 
 This project is licensed under the **MIT License**.  
 © 2025 Lolo — Attribution required.  
