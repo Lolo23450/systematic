@@ -1,18 +1,18 @@
 // --- CORE SETTINGS ---
-    const canvas = document.getElementById("game");
-    const ctx    = canvas.getContext("2d");
+const canvas = document.getElementById("game");
+const ctx    = canvas.getContext("2d");
 
-    let tileSize = 30
-    const spriteDim = 10;         // your sprite is 10×10
-    const BASE_PIXEL_SIZE = 3;    // you want exactly 3px per sprite-pixel
-    const MIN_TILE = spriteDim * BASE_PIXEL_SIZE;
-    const MAX_TILE = 60;          // or whatever upper limit you like
-    const mapCols  = 60;
-    const mapRows  = 30;
+let tileSize = 30
+const spriteDim = 10;         // your sprite is 10×10
+const BASE_PIXEL_SIZE = 3;    // you want exactly 3px per sprite-pixel
+const MIN_TILE = spriteDim * BASE_PIXEL_SIZE;
+const MAX_TILE = 60;          // or whatever upper limit you like
+const mapCols  = 60;
+const mapRows  = 30;
 
-    // --- EDIT vs PLAY MODE ---
-    let mode = "edit"; // "edit" or "play"
-    let camX = 0, camY = 0;
+// --- EDIT vs PLAY MODE ---
+let mode = "edit"; // "edit" or "play"
+let camX = 0, camY = 0;
     
 const palettes = {
   "Forest": [
@@ -757,10 +757,10 @@ const originalBuiltInCount = sprites.length;
     // initialize with one blank level:
     
 
-// ==========================
-// === Module: Functions ===
-// ==========================
-function makeEmptyLevel() {
+    // ==========================
+    // === Module: Functions ===
+    // ==========================
+    function makeEmptyLevel() {
       return Array.from({ length: mapRows }, () =>
         Array.from({ length: mapCols }, () =>
           new Array(layerCount).fill(0)
