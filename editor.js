@@ -1040,7 +1040,6 @@ const originalBuiltInCount = sprites.length;
 
     // Only darken valid 6-digit hex colors; pass others through
     function darkenHex(col, factor) {
-      // If it’s not a "#xxxxxx" string, return it unchanged
       if (typeof col !== "string" || !col.startsWith("#") || col.length !== 7) {
         return col;
       }
@@ -1062,7 +1061,7 @@ const originalBuiltInCount = sprites.length;
       if (x < 0 || y < 0 || x >= mapCols || y >= mapRows) return;
 
       const txt = prompt(`Enter text to place at (${x},${y}):`, "");
-      if (txt === null) return;  // user cancelled
+      if (txt === null) return;
 
       // set the tile
       levels[currentLevel][y][x][currentLayer] = TEXT_TILE_ID;
@@ -1205,7 +1204,7 @@ const originalBuiltInCount = sprites.length;
       }
     }
 
-    // --- DRAW SPRITE UTILITY ---
+    // --- DRAW SINGLE SPRITE UTILITY ---
     function drawSprite(data, x, y) {
       const spriteDim     = data.length;
       const pixelSize     = Math.floor(tileSize / spriteDim) || 1;
@@ -1227,6 +1226,7 @@ const originalBuiltInCount = sprites.length;
       }
     }
 
+    // draw player
     function drawPlayer() {
       drawSprite(player.sprite, player.x - camX, player.y - camY);
     }
@@ -1249,6 +1249,7 @@ const originalBuiltInCount = sprites.length;
       }
     }
 
+    // move camera
     function moveCamera() {
       if (keys["ArrowLeft"] || keys["a"]) camX -= 10;
       if (keys["ArrowRight"] || keys["d"]) camX += 10;
@@ -1270,7 +1271,7 @@ const originalBuiltInCount = sprites.length;
       return [x, y];
     }
 
-        // --- SAVE / LOAD & GENERATE ---
+        // --- SAVE / LOAD ---
     function saveAllLevels() {
       const data = JSON.stringify(levels);
       console.log("All Levels JSON:", data);
@@ -1405,6 +1406,7 @@ const originalBuiltInCount = sprites.length;
       }
     }
 
+    // UPDATE
     function update() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -1557,7 +1559,7 @@ const originalBuiltInCount = sprites.length;
       requestAnimationFrame(update);
     }
 
-    // --- TILE BRUSH UI ---
+    // --- TILE PALETTE BRUSH UI ---
     function createTileBrushes() {
       const container = document.getElementById("tileBrushes");
       container.innerHTML = "";
@@ -1638,8 +1640,8 @@ const originalBuiltInCount = sprites.length;
       });
     }
 
+    // displays hover tooltips
     function drawBrushHoverTooltips() {
-      // grab all canvases inside the brush container
       const tooltips = document.querySelectorAll("#tileBrushes canvas");
 
       tooltips.forEach(c => {
@@ -1732,6 +1734,7 @@ const originalBuiltInCount = sprites.length;
       });
     }
 
+    // add more categories here
     function makeBrushCategories() {
       const all       = sprites.map((_, i) => i).filter(i => ![24,25,26,29,30].includes(i));
       const painted   = sprites.map((_, i) => i)
@@ -1801,7 +1804,6 @@ const originalBuiltInCount = sprites.length;
       modal.style.display = 'none';
     });
 
-    // extend your existing paletteSelector handler:
     const sel = document.getElementById("paletteSelector");
     sel.onchange = e => {
       palette = palettes[e.target.value];
@@ -1812,62 +1814,48 @@ const originalBuiltInCount = sprites.length;
       }
     };
 
+    // load sprites
     const loader = document.getElementById('loadSpriteLoader');
     loader.addEventListener('change', e => {
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
-
       reader.onload = () => {
-        const text = reader.result;
-        const match = text.match(/const\s+sprites\s*=\s*(\[[\s\S]*\]);?/);
-        if (!match) {
-          return alert('Invalid format: couldn’t find "const sprites = [ … ];"');
-        }
-        let importedArray;
+        let imported;
         try {
-          importedArray = (new Function(`"use strict"; return ${match[1]}`))();
-        } catch (err) {
-          return alert('Error parsing sprites array: ' + err.message);
+          imported = JSON.parse(reader.result);
+        } catch(err) {
+          return alert("Invalid JSON: " + err.message);
         }
-        if (!Array.isArray(importedArray)) {
-          return alert('Parsed value is not an array.');
+        if (!Array.isArray(imported)) {
+          return alert("Expected an array of sprite buckets!");
+        }
+        // Basic validation: each bucket is an array of {name,data}
+        if (!imported.every(bucket =>
+              Array.isArray(bucket) &&
+              bucket.every(s => typeof s.name === 'string' && Array.isArray(s.data))
+            )) {
+          return alert("JSON format mismatch: make sure it's an array of [{name,data},…] buckets.");
         }
 
-        // Map flat objects to your bucket format
-        const importedBuckets = importedArray
-          .filter(obj => obj.name && Array.isArray(obj.data))
-          .map(obj => [{ name: obj.name, data: obj.data }]);
+        // Replace your in-memory sprites
+        sprites = imported;
 
-        // Replace or append
-        importedBuckets.forEach(newBucket => {
-          const newName = newBucket[0].name;
-          // find existing sprite by name
-          const existingIndex = sprites.findIndex(
-            bucket => bucket[0]?.name === newName
-          );
-          if (existingIndex >= 0) {
-            // overwrite data
-            sprites[existingIndex] = newBucket;
-          } else {
-            // brand new sprite
-            sprites.push(newBucket);
-          }
-        });
-
-        // Refresh the UI
+        // Rebuild brushes & refresh sprite editor if open
         createTileBrushes();
-        alert(`Imported ${importedBuckets.length} sprites (replaced ${importedBuckets.filter(b => 
-          sprites.findIndex(sb => sb[0].name === b[0].name) >= 0
-        ).length} existing, added ${importedBuckets.length - importedBuckets.filter(b => 
-          sprites.findIndex(sb => sb[0].name === b[0].name) >= 0
-        ).length} new).`);
-      };
+        if (modal.style.display === 'block') {
+          repaintEditorGrid();
+          renderEditorPaletteSwatch();
+        }
 
+        alert(`Loaded ${sprites.length} sprite buckets from "${file.name}"`);
+      };
       reader.readAsText(file);
+
+      // clear the input so you can reload the same file if needed
       e.target.value = '';
     });
 
     // --- STARTUP ---
     createTileBrushes();
-    update();  // kick off main loop
+    update();
