@@ -16,6 +16,8 @@
       <button id="saveLevel"   style="width:150px;">Save All Levels</button>
       <button id="loadLevel"   style="width:150px;">Load All Levels</button>
       <input type="file" id="loadLevelFile" accept=".json" style="display:none" />
+      <button onclick="uploadCurrentLevel()">Upload Level</button>
+      <button onclick="loadLevelFromFirebase()">Load Shared Level</button>
     </div>
   </div>
   <div id="paletteWrapper" style="width:824px; margin:10px auto; background:#111; overflow:hidden;">
@@ -71,6 +73,24 @@
 </div>
 </body>
 <script src="https://cdn.jsdelivr.net/npm/lz-string/libs/lz-string.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyC0pasKpmtRx7Y7SInii9nrnHIPNFXw2EM",
+    authDomain: "systematic-9f59b.firebaseapp.com",
+    databaseURL: "https://systematic-9f59b-default-rtdb.firebaseio.com",
+    projectId: "systematic-9f59b",
+    storageBucket: "systematic-9f59b.firebasestorage.app",
+    messagingSenderId: "892897038405",
+    appId: "1:892897038405:web:9901e4b5b92ae2aff0932c"
+  };
+
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+</script>
 <script src="sprites.js"></script>
 <script src="editor.js"></script>
 </html>

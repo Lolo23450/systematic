@@ -765,6 +765,41 @@ const originalBuiltInCount = sprites.length;
     document.getElementById("saveLevel").textContent = "Save All Levels";
     document.getElementById("saveLevel").onclick = saveAllLevels;
 
+    function uploadCurrentLevel() {
+      const levelData = levels[currentLevel];
+      const name = prompt("Enter a unique name for this level:");
+      if (!name) return;
+
+      db.ref("levels/" + name).set(levelData, err => {
+        if (err) {
+          alert("Upload failed: " + err.message);
+        } else {
+          alert("Level uploaded as: " + name);
+        }
+      });
+    }
+
+    
+    function loadLevelFromFirebase() {
+      const name = prompt("Enter level name to load:");
+      if (!name) return;
+
+      db.ref("levels/" + name).once("value", snapshot => {
+        const data = snapshot.val();
+        if (!data) {
+          alert("No level found with name: " + name);
+          return;
+        }
+
+        // Replace current level
+        levels[currentLevel] = data;
+        level = data;
+        refreshLevelLabel();
+        alert("Level loaded!");
+      });
+    }
+
+
     // Always read from the active level:
     function getCell(col, row, layer) {
       // bounds check
