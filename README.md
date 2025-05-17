@@ -28,6 +28,8 @@ A web‐based **pixel platformer level editor** and playtester—fully in your b
   – 10+ built-in palettes (Forest, Desert, Tundra, Swamp, …).  
   – Live preview & palette swatches in the sprite editor.
 
+  ![Grid](assets/readme-imgs/colorpalettes.png)
+
 - **Layered editing**  
   – Background & terrain layers (expandable).  
   – Control visibility and paint order.
