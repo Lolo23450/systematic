@@ -7,15 +7,21 @@ A web‐based **pixel platformer level editor** and playtester—fully in your b
 
 ## Features
 
+- **Tile Palette & Tile Categories**
+  - 30+ Tiles organized in different categories.
+  - Fully expandable using UI.
+ 
+  ![Palette UI](assets/tilepalette.png)
+
 - **Grid-based tile editor**  
-  – Paint terrain, background, objects, spikes, bounce pads, one-way platforms, text tiles, and more.  
-  – Click-and-drag painting; right-click custom properties.
+  – Paint terrain, background, objects, spikes, bounce pads, platforms, text tiles, and more.  
+  – Click-and-drag painting; right-click tiles custom properties.
 
 - **Multi-level support**  
   – Create, rename, navigate, and delete levels.  
   – Save & load **all** levels as JSON.
 
-- **Custom palettes**  
+- **Custom color palettes**  
   – 10+ built-in palettes (Forest, Desert, Tundra, Swamp, …).  
   – Live preview & palette swatches in the sprite editor.
 
@@ -31,11 +37,6 @@ A web‐based **pixel platformer level editor** and playtester—fully in your b
   – Draw new 10×10 pixel sprites.  
   – Assign palette indices and give each sprite a name.  
   – Load & merge external sprite JSON files.
-
-- **Text Tiles**  
-  – Place configurable text anywhere in the level.  
-  – Auto-resize background box to fit long strings.  
-  – Edit text later via right-click properties.
 
 - **Custom tile properties**  
   – Bounce pads: adjustable jump strength.  
