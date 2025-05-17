@@ -785,104 +785,74 @@ const originalBuiltInCount = sprites.length;
       }
     }
 
-    // --- DRAW LEVEL ---
     function drawLevel() {
-      // 1) advance global tick for animations
       globalTick++;
       maybeUpdateAnimatedCache();
 
-      // 2) which spike frame to show
       const frameIndex = Math.floor(globalTick / spikeHold) % spikeFrames.length;
-
-      // 3) clear & background
       ctx.fillStyle = palette[6];
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // 4) compute integer camera offsets
-      const camXi = Math.round(camX);
-      const camYi = Math.round(camY);
+      const camXi = Math.round(camX), camYi = Math.round(camY);
 
-      // 5) determine visible tile range
-      const startCol = Math.floor(camX       / tileSize);
-      const endCol   = Math.ceil ((camX + canvas.width ) / tileSize);
-      const startRow = Math.floor(camY       / tileSize);
-      const endRow   = Math.ceil ((camY + canvas.height) / tileSize);
+      const startCol = Math.floor(camX / tileSize),
+            endCol   = Math.ceil ((camX + canvas.width ) / tileSize),
+            startRow = Math.floor(camY / tileSize),
+            endRow   = Math.ceil ((camY + canvas.height) / tileSize);
 
-      const minCol = Math.max(0, startCol);
-      const maxCol = Math.min(mapCols, endCol);
-      const minRow = Math.max(0, startRow);
-      const maxRow = Math.min(mapRows, endRow);
+      const minCol = Math.max(0, startCol),
+            maxCol = Math.min(mapCols, endCol),
+            minRow = Math.max(0, startRow),
+            maxRow = Math.min(mapRows, endRow);
 
       for (let y = minRow; y < maxRow; y++) {
         for (let x = minCol; x < maxCol; x++) {
           for (let layer = 0; layer < layerCount; layer++) {
             let id = levels[currentLevel][y][x][layer];
-            let frame = 0;
-            let flags = '';
+            // animated-spike substitution
             if (id === SPIKE_BASE_ID) id = spikeFrames[frameIndex];
-            const spr = sprites[id];
+
+            // 1) TEXT-TILE HANDLING
             if (id === TEXT_TILE_ID) {
-              // fetch the text
-              const cacheKey = `${id}:${layer}:${flags}`;
-              const txt = tilePropsData[key]?.text || "";
+              // build the props-lookup key
+              const propKey = `${currentLevel}-${x}-${y}-${layer}`;
+              const txt     = tilePropsData[propKey]?.text || "";
 
-              // choose font and measure
-              const fontSize = Math.floor(tileSize/3);
-              ctx.font = `${fontSize}px sans-serif`;
-              const metrics  = ctx.measureText(txt);
-              const textW    = metrics.width;
-              const padding  = 4;
-
-              // compute how much wider than a tile this text is
-              const extraW = Math.max(0, textW + padding*2 - tileSize);
-
-              // background: extend half extra to left, half to right
-              const bgX = x*tileSize - camXi - extraW/2;
-              const bgW = tileSize + extraW;
+              // measure & draw background
+              const fontSize = Math.floor(tileSize / 3),
+                    padding  = 4;
+              ctx.font      = `${fontSize}px sans-serif`;
+              const textW   = ctx.measureText(txt).width;
+              const extraW  = Math.max(0, textW + padding*2 - tileSize);
+              const bgX     = x*tileSize - camXi - extraW/2,
+                    bgW     = tileSize + extraW;
               ctx.fillStyle = "#222";
               ctx.fillRect(bgX, y*tileSize - camYi, bgW, tileSize);
 
-              // draw the text centered within that box
+              // draw centered text
               ctx.fillStyle    = "#fff";
               ctx.textAlign    = "center";
               ctx.textBaseline = "middle";
               ctx.fillText(
                 txt,
-                x*tileSize - camXi + (tileSize/2),
-                y*tileSize - camYi + (tileSize/2)
+                x*tileSize - camXi + tileSize/2,
+                y*tileSize - camYi + tileSize/2
               );
-
-              continue;  // skip normal sprite drawing
-            }
-            if (!spr?.length) continue;
-
-            const sprite    = spr[0].data;
-            const dim       = sprite.length;
-            const pixelSize = Math.floor(tileSize / dim) || 1;
-            const offset    = Math.floor((tileSize - dim*pixelSize)/2);
-
-            // pick dark vs normal
-            let pal = layer === 0 ? darkPalette : palette;
-            // special case: platform
-            if (id === 27) {
-              const key  = `${currentLevel}-${x}-${y}-${layer}`;
-              const prop = tilePropsData[key];
-              if (prop?.allowDrop) {
-                // create a shallow copy so we don’t overwrite the global palette
-                pal = pal.slice();
-                // remap index 0 → index 2
-                pal[0] = palette[2];
-                pal[1] = palette[3];
-              }
+              continue;  // skip sprite cache drawing
             }
 
+            // 2) SPRITE TILES (cached)
+            const frame = 0;      // only spikes animate, others use frame 0
+            const flags = "";     // no special flags here
             const cacheKey = `${id}:${frame}:${layer}:${flags}`;
-            const tileImg  = animTileCache[cacheKey] || tileCache[cacheKey];
+            const tileImg  = (id === SPIKE_BASE_ID ? animTileCache : tileCache)[cacheKey];
+
             if (tileImg) {
               ctx.drawImage(
                 tileImg,
                 x * tileSize - camXi,
-                y * tileSize - camYi
+                y * tileSize - camYi,
+                tileSize, tileSize
               );
             }
           }
@@ -1510,7 +1480,7 @@ const originalBuiltInCount = sprites.length;
     }
 
     function makeBrushCategories() {
-      const all       = sprites.map((_, i) => i).filter(i => ![24,25,26,29,30,31].includes(i)); // Add back 31 when text is bugfixed
+      const all       = sprites.map((_, i) => i).filter(i => ![24,25,26,29,30].includes(i));
       const painted   = sprites.map((_, i) => i)
                               .filter(i => i >= originalBuiltInCount);
       return {
@@ -1519,7 +1489,7 @@ const originalBuiltInCount = sprites.length;
         "Cobblestone":[0,7,8,9,10,11,12,13,14],
         "Wood":       [0,21,22],
         "Ancient Stones":[5,6,15,16,17,18,19,20,32,33,34],
-        "Other":      [0,23,27,28,36], // Same here
+        "Other":      [0,23,27,28,31,36],
         // now "Painted" only contains indices of sprites you added
         "Painted":    painted
       };
