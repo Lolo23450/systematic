@@ -13,7 +13,7 @@ const mapRows  = 30;
 // --- EDIT vs PLAY MODE ---
 let mode = "edit"; // "edit" or "play"
 let camX = 0, camY = 0;
-    
+
 const palettes = {
   "Forest": [
     "#1d1b2a", // shadow base (deep soil/dark tree root)
@@ -521,10 +521,111 @@ const originalBuiltInCount = sprites.length;
 
     const darkPalette = palette.map(col => darkenHex(col, 0.5));
 
+    let tileCache       = {};      // holds *all* non-animated, static tile images
+    let animTileCache   = {};      // holds only animated frames for animated IDs
+    let lastCacheUpdate   = 0;       // timestamp of last anim-cache rebuild
+    const ANIM_FPS         = 10;
+    const ANIM_INTERVAL   = 1000 / ANIM_FPS;  // 50 ms
+
+    // 1) Build your static cache once at startup:
+    function buildStaticTileCache() {
+      for (let id in sprites) {
+        const sprArr = sprites[id];
+        if (!sprArr?.length) continue;
+
+        // skip animated-base IDs (e.g. SPIKE_BASE_ID)
+        if (Number(id) === SPIKE_BASE_ID) continue;
+        for (let layer = 0; layer < layerCount; layer++) {
+          // flags can stay empty string if none
+          buildTileCanvas(id, 0, layer, '', tileCache);
+        }
+      }
+    }
+
+    // 2) Build or rebuild your animated frames at up to 20 FPS:
+    function buildAnimatedCache() {
+      animTileCache = {};  // reset
+      const frameIndex = Math.floor(performance.now() / ANIM_INTERVAL) % spikeFrames.length;
+      
+      // rebuild only the spike frames (or any other animated IDs)
+      for (let f = 0; f < spikeFrames.length; f++) {
+        const id = spikeFrames[f];
+        buildTileCanvas(id, /*frame*/f, /*layer*/0, /*flags*/'', animTileCache);
+      }
+      
+      lastCacheUpdate = performance.now();
+    }
+
+    // 3) A helper to bake *one* tile into your chosen cache:
+
+    // (1) Helper to bake *one* tile into a cache object:
+    function buildTileCanvas(id, frame, layer, flags, cacheObj) {
+      // ensure id is a string key
+      const keyId = String(id);
+      const sprArr = sprites[keyId];
+      if (!sprArr) {
+        console.warn(`buildTileCanvas: no sprites[${keyId}]`);
+        return;
+      }
+      // clamp frame
+      if (frame >= sprArr.length || frame < 0) {
+        console.warn(`buildTileCanvas: sprites[${keyId}] has no frame ${frame}, using frame 0`);
+        frame = 0;
+      }
+      const entry = sprArr[frame];
+      if (!entry || !entry.data) {
+        console.warn(`buildTileCanvas: sprites[${keyId}][${frame}].data is missing`);
+        return;
+      }
+
+      const sprite    = entry.data;
+      // pick the correct palette for this layer
+      const pal       = layer === 0 ? darkPalette : palette;
+      const dim       = sprite.length;
+      const pixelSize = Math.floor(tileSize / dim) || 1;
+      const offset    = Math.floor((tileSize - dim*pixelSize)/2);
+
+      // create an offscreen canvas
+      const cvs = document.createElement('canvas');
+      cvs.width  = cvs.height = tileSize;
+      const cx   = cvs.getContext('2d');
+
+      for (let y = 0; y < dim; y++) {
+        for (let x = 0; x < dim; x++) {
+          const ci  = sprite[y][x];
+          if (ci < 0) continue;
+          const raw = pal[ci];
+          if (!raw || raw === "#00000000" || raw === "rgba(0,0,0,0)") continue;
+          cx.fillStyle = raw;
+          cx.fillRect(
+            offset + x*pixelSize,
+            offset + y*pixelSize,
+            pixelSize, pixelSize
+          );
+        }
+      }
+
+      const cacheKey = `${keyId}:${frame}:${layer}:${flags}`;
+      cacheObj[cacheKey] = cvs;
+    }
+
+    // 4) Kick it all off:
+    buildStaticTileCache();
+    buildAnimatedCache();  // initial build
+
+    // 5) In your game loop (drawLevel), before drawing, check if it’s time to rebuild anim frames:
+    function maybeUpdateAnimatedCache() {
+      const now = performance.now();
+      if (now - lastCacheUpdate >= ANIM_INTERVAL) {
+        buildAnimatedCache();
+      }
+    }
+
     // --- DRAW LEVEL ---
     function drawLevel() {
       // 1) advance global tick for animations
       globalTick++;
+      maybeUpdateAnimatedCache();
 
       // 2) which spike frame to show
       const frameIndex = Math.floor(globalTick / spikeHold) % spikeFrames.length;
@@ -548,18 +649,17 @@ const originalBuiltInCount = sprites.length;
       const minRow = Math.max(0, startRow);
       const maxRow = Math.min(mapRows, endRow);
 
-      const TRANSPARENT_HEX  = "#00000000";
-      const TRANSPARENT_RGBA = "rgba(0,0,0,0)";
-
       for (let y = minRow; y < maxRow; y++) {
         for (let x = minCol; x < maxCol; x++) {
           for (let layer = 0; layer < layerCount; layer++) {
             let id = levels[currentLevel][y][x][layer];
+            let frame = 0;
+            let flags = '';
             if (id === SPIKE_BASE_ID) id = spikeFrames[frameIndex];
             const spr = sprites[id];
             if (id === TEXT_TILE_ID) {
               // fetch the text
-              const key = `${currentLevel}-${x}-${y}-${layer}`;
+              const cacheKey = `${id}:${layer}:${flags}`;
               const txt = tilePropsData[key]?.text || "";
 
               // choose font and measure
@@ -612,26 +712,14 @@ const originalBuiltInCount = sprites.length;
               }
             }
 
-            for (let row = 0; row < dim; row++) {
-              for (let col = 0; col < dim; col++) {
-                const ci = sprite[row][col];
-                if (ci < 0) continue;
-
-                // 1) get the raw color string
-                const raw = pal[ci];
-                if (!raw) continue;  // out of range, just skip
-
-                // 2) if it’s fully transparent, skip it
-                if (raw === TRANSPARENT_HEX || raw === TRANSPARENT_RGBA) continue;
-
-                // 3) otherwise draw normally
-                ctx.fillStyle = raw;
-                ctx.fillRect(
-                  x*tileSize - camXi + offset + col*pixelSize,
-                  y*tileSize - camYi + offset + row*pixelSize,
-                  pixelSize, pixelSize
-                );
-              }
+            const cacheKey = `${id}:${frame}:${layer}:${flags}`;
+            const tileImg  = animTileCache[cacheKey] || tileCache[cacheKey];
+            if (tileImg) {
+              ctx.drawImage(
+                tileImg,
+                x * tileSize - camXi,
+                y * tileSize - camYi
+              );
             }
           }
         }
