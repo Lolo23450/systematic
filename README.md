@@ -11,7 +11,7 @@ A web‐based **pixel platformer level editor** and playtester—fully in your b
   - 30+ Tiles organized in different categories.
   - Fully expandable using UI.
  
-  ![Palette UI](assets/tilepalette.png)
+  ![Palette UI](assets/readme-imgs/tilepalette.png)
 
 - **Grid-based tile editor**  
   – Paint terrain, background, objects, spikes, bounce pads, platforms, text tiles, and more.  
