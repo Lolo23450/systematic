@@ -49,7 +49,7 @@ A web‐based **pixel platformer level editor** and playtester—fully in your b
 ## 📦 Installation
 
 1. Clone or download this repo  
-2. Open `index.html` (or `pixel_platformer_editor_upscaled.html`) in any modern browser  
+2. Open `index.html` in any modern browser  
 3. Start editing—no build step required!
 
 ---
@@ -90,7 +90,7 @@ A web‐based **pixel platformer level editor** and playtester—fully in your b
 ## 🛠️ Extending the Editor
 
 - **Add new tile types**:  
-  1. Add a sprite bucket in `sprites` with your pixel data  
+  1. Add a sprite array in `sprites` with your pixel data  
   2. Include its ID in your brush categories (in `makeBrushCategories()`)  
   3. Optionally define `tilePropertySchemas[ID]` for custom fields  
   4. Handle placement & rendering logic in `paintAt()` and `drawLevel()`
