@@ -64,6 +64,10 @@ A web-based **pixel platformer level editor** and playtester—fully in your bro
 - As you edit, the URL updates in real-time—copy/paste to share your exact levels!  
 - Opening someone’s link decodes the hash and loads their levels instantly, no file download required.
 
+### Online Levels
+- You can publish levels and share them using an unique name
+- Once your level is published, you can share that name and other players with that name will be able to load it using the Load Shared Level Button
+
 ## Installation
 
 1. Clone or download this repo  
@@ -93,7 +97,8 @@ A web-based **pixel platformer level editor** and playtester—fully in your bro
 - **Save All Levels**: download JSON & auto-save in browser  
 - **Load All Levels**: import JSON from disk  
 - **Restore Last Save**: reload from browser storage  
-
+- **Upload Level**: uploads your level
+- **Load Shared Level**: loads a level
 ### Playtest Mode  
 - **W / ↑**: jump  
 - **A / ←**, **D / →**: move  
