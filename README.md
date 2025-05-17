@@ -5,7 +5,7 @@ A web‐based **pixel platformer level editor** and playtester—fully in your b
 
 ---
 
-## 🚀 Features
+## Features
 
 - **Grid-based tile editor**  
   – Paint terrain, background, objects, spikes, bounce pads, one-way platforms, text tiles, and more.  
@@ -47,7 +47,7 @@ A web‐based **pixel platformer level editor** and playtester—fully in your b
 
 ---
 
-## 📦 Installation
+## Installation
 
 1. Clone or download this repo  
 2. Open `index.html` in any modern browser  
@@ -55,7 +55,7 @@ A web‐based **pixel platformer level editor** and playtester—fully in your b
 
 ---
 
-## 🎮 Controls
+## Controls
 
 ### Editor Mode
 
@@ -102,7 +102,7 @@ A web‐based **pixel platformer level editor** and playtester—fully in your b
 
 ---
 
-## 📝 License & Attribution
+## License & Attribution
 
 This project is licensed under the **MIT License**.  
 © 2025 Lolo — Attribution required.  
