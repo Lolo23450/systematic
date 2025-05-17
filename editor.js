@@ -429,23 +429,24 @@ const originalBuiltInCount = sprites.length;
       if (mode !== "edit") return;
       e.preventDefault();
 
-      // wheel up (e.deltaY < 0) → zoom in; wheel down → zoom out
+      // Compute the new tileSize
       const direction = e.deltaY < 0 ? 1 : -1;
-
-      // step exactly one spriteDim each tick
-      let newSize = tileSize + (direction * spriteDim);
-
-      // clamp between your MIN_TILE and MAX_TILE
+      let newSize = tileSize + direction * spriteDim;
       newSize = Math.max(MIN_TILE, Math.min(MAX_TILE, newSize));
-
-      // if unchanged, exit early
       if (newSize === tileSize) return;
 
+      // Apply it
       tileSize = newSize;
 
-      // re-clamp camera so no gaps appear
+      // Re‐clamp camera so no gaps appear
       camX = Math.max(0, Math.min(camX, mapCols * tileSize - canvas.width));
       camY = Math.max(0, Math.min(camY, mapRows * tileSize - canvas.height));
+
+      // **NEW: Clear & rebuild both caches at the new tileSize**
+      tileCache     = {};
+      animTileCache = {};
+      buildStaticTileCache();
+      buildAnimatedCache();
     });
 
     window.addEventListener("keydown", e => { keys[e.key] = true; });
