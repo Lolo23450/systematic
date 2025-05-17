@@ -871,7 +871,7 @@ const originalBuiltInCount = sprites.length;
       alert("Levels saved! ✅");
     }
 
-        function loadAllLevelsFromStorage() {
+    function loadAllLevelsFromStorage() {
       const stored = localStorage.getItem(SAVED_KEY);
       if (!stored) return alert("No saved levels in browser!");
       try {
@@ -913,8 +913,30 @@ const originalBuiltInCount = sprites.length;
     document.getElementById("saveLevel").textContent = "Save All Levels";
     document.getElementById("saveLevel").onclick = saveAllLevels;
 
+    function isValidLevelFormat(level) {
+      // Must be a non‐empty array
+      if (!Array.isArray(level) || level.length === 0) return false;
+      const rowLength = level[0].length;
+      // Every row must be an array of equal length
+      if (!level.every(row => Array.isArray(row) && row.length === rowLength)) return false;
+      // Every cell must be an array of two numbers
+      return level.every(row =>
+        row.every(cell =>
+          Array.isArray(cell) &&
+          cell.length === 2 &&
+          typeof cell[0] === 'number' &&
+          typeof cell[1] === 'number'
+        )
+      );
+    }
+
     function uploadCurrentLevel() {
       const levelData = levels[currentLevel];
+
+      if (!isValidLevelFormat(levelData)) {
+        return alert("Level data is invalid — must be a 2D array of [number,number].");
+      }
+
       const name = prompt("Enter a unique name for this level:");
       if (!name) return;
 
@@ -927,7 +949,6 @@ const originalBuiltInCount = sprites.length;
       });
     }
 
-    
     function loadLevelFromFirebase() {
       const name = prompt("Enter level name to load:");
       if (!name) return;
@@ -935,8 +956,10 @@ const originalBuiltInCount = sprites.length;
       db.ref("levels/" + name).once("value", snapshot => {
         const data = snapshot.val();
         if (!data) {
-          alert("No level found with name: " + name);
-          return;
+          return alert("No level found with name: " + name);
+        }
+        if (!isValidLevelFormat(data)) {
+          return alert("Loaded data is malformed. Aborting load.");
         }
 
         // Replace current level
@@ -946,7 +969,6 @@ const originalBuiltInCount = sprites.length;
         alert("Level loaded!");
       });
     }
-
 
     // Always read from the active level:
     function getCell(col, row, layer) {
