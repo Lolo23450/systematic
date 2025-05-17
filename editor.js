@@ -1411,7 +1411,7 @@ const originalBuiltInCount = sprites.length;
                               .filter(i => i >= originalBuiltInCount);
       return {
         "All":        all,
-        "Terrain":    [0,1,2,3,4,35,37],
+        "Terrain":    [0,1,2,3,4,35,38,37],
         "Cobblestone":[0,7,8,9,10,11,12,13,14],
         "Wood":       [0,21,22],
         "Ancient Stones":[5,6,15,16,17,18,19,20,32,33,34],
