@@ -45,6 +45,8 @@ A web‐based **pixel platformer level editor** and playtester—fully in your b
   – Assign palette indices and give each sprite a name.  
   – Load & merge external sprite JSON files.
 
+  ![Sprite Editor](assets/readme-imgs/spriteeditor.png)
+
 - **Custom tile properties**  
   – Bounce pads: adjustable jump strength.  
   – One-way platforms: toggle “allow drop” (press S).  
