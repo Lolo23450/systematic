@@ -127,605 +127,6 @@ const palettes = {
   ],
 };
 
-const sprites = [
-  [], // 0 = empty
-  [
-    {
-      name: "Long Grass",
-      data: [
-        [3,3,3,3,3,3,3,3,3,3], // extra long blade tops
-        [3,2,3,2,3,2,3,2,3,2], // extra variation on blades
-        [3,3,3,3,3,3,3,3,3,3], // original top row
-        [2,3,2,3,2,3,2,3,2,3],
-        [2,2,3,3,2,2,3,3,2,2],
-        [0,2,0,2,0,2,0,2,0,2],
-        [0,0,1,0,1,0,1,0,1,1],
-        [0,1,0,1,0,1,0,1,0,1],
-        [0,0,1,0,1,0,1,0,1,1],
-        [0,0,0,0,0,0,0,0,0,0],
-      ]
-    }
-  ],
-  [
-    {
-      name: "Grass",
-      data: [
-        [3,3,3,3,3,3,3,3,3,3],
-        [2,3,2,3,2,3,2,3,2,3],
-        [2,2,3,3,2,2,3,3,2,2],
-        [0,2,0,2,0,2,0,2,0,2],
-        [0,0,1,0,1,0,1,0,1,1],
-        [0,1,0,1,0,1,0,1,0,1],
-        [0,0,1,0,1,0,1,0,1,1],
-        [0,1,0,1,0,1,0,1,0,1],
-        [0,0,1,0,1,0,1,0,1,1],
-        [0,0,0,0,0,0,0,0,0,0],
-      ]
-    },
-  ],
-  [
-    {
-      name: "Short Grass",
-      data: [
-        [3,3,3,3,3,3,3,3,3,3],
-        [2,2,3,3,2,2,3,3,2,2],
-        [0,2,0,2,0,2,0,2,0,2],
-        [0,0,1,0,1,0,1,0,1,1],
-        [0,1,0,1,0,1,0,1,0,1],
-        [0,0,1,0,1,0,1,0,1,1],
-        [0,1,0,1,0,1,0,1,0,1],
-        [0,0,1,0,1,0,1,0,1,1],
-        [0,1,0,1,0,1,0,1,0,1],
-        [0,0,0,0,0,0,0,0,0,0],
-      ]
-    },
-  ],
-  [
-    {
-      name: "Dirt",
-      data: [
-        [1,1,1,1,1,1,1,1,1,1],
-        [0,1,0,1,0,1,0,1,0,1],
-        [0,0,1,0,1,0,1,0,1,1],
-        [0,1,0,1,0,1,0,1,0,1],
-        [0,0,1,0,1,0,1,0,1,1],
-        [0,1,0,1,0,1,0,1,0,1],
-        [0,0,1,0,1,0,1,0,1,1],
-        [0,1,0,1,0,1,0,1,0,1],
-        [0,0,1,0,1,0,1,0,1,1],
-        [0,0,0,0,0,0,0,0,0,0],
-      ]
-    },
-  ],
-  [
-    {
-      name: "Activated Stone",
-      data: [
-        [0,1,1,0,3,2,0,1,1,0],
-        [1,3,2,1,1,1,1,2,3,1],
-        [1,2,1,0,0,0,0,1,2,1],
-        [0,1,0,1,0,0,1,0,1,0],
-        [3,1,0,0,2,3,0,0,1,3],
-        [2,1,0,0,3,2,0,0,1,2],
-        [0,1,0,1,0,0,1,0,1,0],
-        [1,2,1,0,0,0,0,1,2,1],
-        [1,3,2,1,1,1,1,2,3,1],
-        [0,1,1,0,2,3,0,1,1,0],
-      ]
-    },
-  ],
-  [
-    {
-      name: "Activated Stone 2",
-      data: [
-        [0,1,1,0,3,2,0,1,1,0],
-        [1,0,2,1,1,1,1,2,0,1],
-        [1,2,1,0,0,0,0,1,2,1],
-        [0,1,0,1,0,0,1,0,1,0],
-        [3,1,0,0,0,0,0,0,1,3],
-        [2,1,0,0,0,0,0,0,1,2],
-        [0,1,0,1,0,0,1,0,1,0],
-        [1,2,1,0,0,0,0,1,2,1],
-        [1,0,2,1,1,1,1,2,0,1],
-        [0,1,1,0,2,3,0,1,1,0],
-      ]
-    }
-  ],
-  [
-    {
-      name: "Cobblestone 1",
-      data: [
-        [0,1,1,2,2,0,0,1,2,1],
-        [1,2,2,1,1,0,1,2,2,1],
-        [1,1,0,0,0,0,2,1,1,0],
-        [0,0,0,1,2,1,1,0,0,0],
-        [1,2,1,2,2,1,0,1,1,0],
-        [2,1,1,1,1,0,1,2,2,1],
-        [0,0,0,0,0,0,2,1,1,0],
-        [1,2,1,2,2,1,1,0,0,0],
-        [2,1,1,1,1,0,1,2,2,1],
-        [0,0,0,0,0,0,0,0,0,0],
-      ]
-    }
-  ],
-  [
-    {
-      name: "Cobblestone 2",
-      data: [
-        [0,1,2,2,1,0,0,1,2,1],
-        [1,2,1,1,2,1,1,2,2,1],
-        [2,1,0,0,1,2,2,1,0,0],
-        [1,2,1,2,1,0,1,2,2,1],
-        [0,0,1,2,2,1,2,1,1,0],
-        [0,1,2,1,1,0,0,1,2,1],
-        [1,2,1,0,0,1,2,2,1,0],
-        [2,1,2,1,1,2,1,1,0,0],
-        [0,0,1,2,2,1,2,1,1,0],
-        [0,0,0,0,0,0,0,0,0,0],
-      ]
-    }
-  ],
-  [
-    {
-      name: "Cobblestone 3",
-      data: [
-        [0,1,2,1,0,0,0,0,1,0],
-        [1,2,1,0,0,1,2,1,2,1],
-        [0,0,0,1,2,1,0,0,1,2],
-        [0,1,2,1,0,1,2,1,0,0],
-        [1,2,1,0,0,0,1,2,1,0],
-        [0,0,0,0,1,2,1,0,0,0],
-        [0,1,2,1,0,0,1,2,1,0],
-        [1,2,1,0,0,1,2,1,0,0],
-        [0,0,0,1,2,1,0,0,1,2],
-        [0,1,2,1,0,0,0,0,1,0],
-      ]
-    }
-  ],
-  [
-    {
-      name: "Cobblestone 4",
-      data: [
-        [0,1,1,2,2,0,0,1,2,0],
-        [1,2,2,2,1,0,2,2,1,0],
-        [1,2,1,1,2,2,1,2,2,1],
-        [2,2,1,2,2,1,1,2,2,1],
-        [2,1,1,1,1,1,2,1,1,2],
-        [1,2,2,1,2,0,1,2,2,1],
-        [1,1,2,2,2,1,2,1,1,0],
-        [0,2,1,2,1,1,1,2,1,2],
-        [2,1,1,1,1,0,1,2,2,1],
-        [0,0,1,1,1,1,0,0,0,0]
-      ]
-    }
-  ],
-  [
-    {
-      name: "Cobblestone 1 (Bright)",
-      data: [
-        [1,2,2,3,3,1,1,2,3,2],
-        [2,3,3,2,2,1,2,3,3,2],
-        [2,2,1,1,1,1,3,2,2,1],
-        [1,1,1,2,3,2,2,1,1,1],
-        [2,3,2,3,3,2,1,2,2,1],
-        [3,2,2,2,2,1,2,3,3,2],
-        [1,1,1,1,1,1,3,2,2,1],
-        [2,3,2,3,3,2,2,1,1,1],
-        [3,2,2,2,2,1,2,3,3,2],
-        [1,1,1,1,1,1,1,1,1,1],
-      ]
-    }
-  ],
-  [
-    {
-      name: "Cobblestone 2 (Bright)",
-      data: [
-        [1,2,3,3,2,1,1,2,3,2],
-        [2,3,2,2,3,2,2,3,3,2],
-        [3,2,1,1,2,3,3,2,1,1],
-        [2,3,2,3,2,1,2,3,3,2],
-        [1,1,2,3,3,2,3,2,2,1],
-        [1,2,3,2,2,1,1,2,3,2],
-        [2,3,2,1,1,2,3,3,2,1],
-        [3,2,3,2,2,3,2,2,1,1],
-        [1,1,2,3,3,2,3,2,2,1],
-        [1,1,1,1,1,1,1,1,1,1],
-      ]
-    }
-  ],
-  [
-    {
-      name: "Cobblestone 3 (Bright)",
-      data: [
-        [1,2,3,2,1,1,1,1,2,1],
-        [2,3,2,1,1,2,3,2,3,2],
-        [1,1,1,2,3,2,1,1,2,3],
-        [1,2,3,2,1,2,3,2,1,1],
-        [2,3,2,1,1,1,2,3,2,1],
-        [1,1,1,1,2,3,2,1,1,1],
-        [1,2,3,2,1,1,2,3,2,1],
-        [2,3,2,1,1,2,3,2,1,1],
-        [1,1,1,2,3,2,1,1,2,3],
-        [1,2,3,2,1,1,1,1,2,1],
-      ]
-    }
-  ],
-  [
-    {
-      name: "Cobblestone 4 (Bright)",
-      data: [
-        [1,2,2,3,3,1,1,2,3,1],
-        [2,3,3,3,2,1,3,3,2,1],
-        [2,3,2,2,3,3,2,3,3,2],
-        [3,3,2,3,3,2,2,3,3,2],
-        [3,2,2,2,2,2,3,2,2,3],
-        [2,3,3,2,3,1,2,3,3,2],
-        [2,2,3,3,3,2,3,2,2,1],
-        [1,3,2,3,2,2,2,3,2,3],
-        [3,2,2,2,2,1,2,3,3,2],
-        [1,1,2,2,2,2,1,1,1,1]
-      ]
-    }
-  ],
-  [
-    {
-      name: "Activated Stone 3",
-      data: [
-        [0,1,1,0,3,2,0,1,1,0],
-        [1,3,1,1,1,1,1,1,3,1],
-        [1,1,1,0,0,0,0,1,1,1],
-        [0,1,0,0,2,2,0,0,1,0],
-        [3,1,0,2,3,3,2,0,1,3],
-        [2,1,0,2,3,3,2,0,1,2],
-        [0,1,0,0,2,2,0,0,1,0],
-        [1,1,1,0,0,0,0,1,1,1],
-        [1,3,1,1,1,1,1,1,3,1],
-        [0,1,1,0,2,3,0,1,1,0],
-      ]
-    }
-  ],
-  [
-    {
-      name: "Hole Stone",
-      data: [
-        [0,1,1,0,1,1,0,1,1,0],
-        [1,2,2,1,3,3,1,2,2,1],
-        [1,2,3,3,3,3,3,3,2,1],
-        [0,1,3,3,2,2,3,3,1,0],
-        [0,1,2,2,1,1,2,2,1,0],
-        [1,2,3,1,0,0,1,3,2,1],
-        [1,3,3,0,0,0,0,3,3,1],
-        [0,2,2,1,0,0,1,2,2,0],
-        [0,1,2,2,1,1,2,2,1,0],
-        [0,0,1,1,0,0,1,1,0,0]
-      ]
-    }
-  ],
-  [
-    {
-      name: "Bricks 1",
-      data: [
-        [0,1,1,2,0,0,2,1,1,0],
-        [1,3,2,2,1,1,2,2,3,1],
-        [1,2,0,0,2,2,0,0,2,1],
-        [2,2,1,1,2,2,1,1,2,2],
-        [1,1,1,0,1,1,0,1,1,1],
-        [0,1,0,0,0,0,0,0,1,0],
-        [1,2,1,1,2,2,1,1,2,1],
-        [1,3,2,2,1,1,2,2,3,1],
-        [0,1,1,2,0,0,2,1,1,0],
-        [0,0,0,0,0,0,0,0,0,0],
-      ]
-    }
-  ],
-  [
-    {
-      name: "Bricks 1 (Bright)",
-      data: [
-        [1,2,2,3,1,1,3,2,2,1],
-        [2,3,3,3,2,2,3,3,3,2],
-        [2,3,1,1,3,3,1,1,3,2],
-        [3,3,2,2,3,3,2,2,3,3],
-        [2,2,2,1,2,2,1,2,2,2],
-        [1,2,1,1,1,1,1,1,2,1],
-        [2,3,2,2,3,3,2,2,3,2],
-        [2,3,3,3,2,2,3,3,3,2],
-        [1,2,2,3,1,1,3,2,2,1],
-        [1,1,1,1,1,1,1,1,1,1],
-      ]
-    }
-  ],
-  [
-    {
-      name: "Bricks 2",
-      data: [
-        [2,2,1,1,1,1,1,1,2,2],
-        [2,3,2,1,0,0,1,2,3,2],
-        [1,2,1,0,0,0,0,1,2,1],
-        [1,2,2,2,1,1,2,2,2,1],
-        [1,1,1,2,2,2,2,1,1,1],
-        [2,2,1,0,0,0,0,1,2,2],
-        [2,3,2,1,1,1,1,2,3,2],
-        [1,2,1,0,0,0,0,1,2,1],
-        [1,2,2,1,0,0,1,2,2,1],
-        [0,1,1,1,1,1,1,1,1,0],
-      ]
-    }
-  ],
-  [
-    {
-      name: "Bricks 2 (Bright)",
-      data: [
-        [3,3,2,2,2,2,2,2,3,3],
-        [3,3,3,2,1,1,2,3,3,3],
-        [2,3,2,1,1,1,1,2,3,2],
-        [2,3,3,3,2,2,3,3,3,2],
-        [2,2,2,3,3,3,3,2,2,2],
-        [3,3,2,1,1,1,1,2,3,3],
-        [3,3,3,2,2,2,2,3,3,3],
-        [2,3,2,1,1,1,1,2,3,2],
-        [2,3,3,2,1,1,2,3,3,2],
-        [1,2,2,2,2,2,2,2,2,1],
-      ]
-    }
-  ],
-  [
-    {
-      name: "Wooden Planks",
-      data: [
-        [1,1,1,1,1,1,1,1,1,1],
-        [3,3,3,3,3,3,2,3,3,3],
-        [2,2,2,2,2,2,1,2,2,2],
-        [1,1,1,1,1,1,0,1,1,1],
-        [3,3,2,3,3,3,3,3,3,3],
-        [2,2,1,2,2,2,2,2,2,2],
-        [1,1,0,1,1,1,1,1,1,1],
-        [3,3,3,3,2,3,3,3,3,3],
-        [2,2,2,2,1,2,2,2,2,2],
-        [0,0,0,0,0,0,0,0,0,0],
-      ]
-    }
-  ],
-  [
-    {
-      name: "Wooden Planks 2",
-      data: [
-        [3,3,3,3,3,3,3,2,3,3],
-        [2,2,2,2,2,2,2,1,2,2],
-        [2,2,2,2,2,2,2,1,2,2],
-        [1,1,1,1,1,1,1,0,1,1],
-        [0,0,0,0,0,0,0,0,0,0],
-        [3,3,2,3,3,3,3,3,3,3],
-        [2,2,1,2,2,2,2,2,2,2],
-        [2,2,1,2,2,2,2,2,2,2],
-        [1,1,0,1,1,1,1,1,1,1],
-        [0,0,0,0,0,0,0,0,0,0],
-      ]
-    }
-  ],
-  [
-    {
-      name: "Spring",
-      data: [
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,2,2,2,2,2,2,2,2,7],
-        [7,2,3,3,3,3,3,3,2,7],
-        [7,7,7,1,1,0,7,7,7,7],
-        [7,7,7,7,0,1,1,7,7,7],
-        [7,7,7,1,1,0,7,7,7,7],
-        [7,0,0,0,0,0,0,0,0,7],
-        [7,0,1,1,1,1,1,1,0,7],
-      ]
-    }
-  ],
-  [
-    {
-      name: "Spring Frame 2",
-      data: [
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,2,2,2,2,2,2,2,2,7],
-        [7,2,3,3,3,3,3,3,2,7],
-        [7,7,7,1,0,1,1,7,7,7],
-        [7,7,7,1,1,0,1,7,7,7],
-        [7,0,0,0,0,0,0,0,0,7],
-        [7,0,1,1,1,1,1,1,0,7],
-      ]
-    }
-  ],
-  [
-    {
-      name: "Spring Frame 3",
-      data: [
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,2,2,2,2,2,2,2,2,7],
-        [7,2,3,3,3,3,3,3,2,7],
-        [7,7,7,1,1,0,1,7,7,7],
-        [7,0,0,0,0,0,0,0,0,7],
-        [7,0,1,1,1,1,1,1,0,7],
-      ]
-    }
-  ],
-  [
-    {
-      name: "Spring Frame 4",
-      data: [
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,2,2,2,2,2,2,2,2,7],
-        [7,2,3,3,3,3,3,3,2,7],
-        [7,7,7,7,0,1,1,7,7,7],
-        [7,7,7,1,1,0,7,7,7,7],
-        [7,7,7,7,0,1,1,7,7,7],
-        [7,7,7,1,1,0,7,7,7,7],
-        [7,0,0,0,0,0,0,0,0,7],
-        [7,0,1,1,1,1,1,1,0,7],
-      ]
-    }
-  ],
-  [
-    {
-      name: "Platform",
-      data: [
-        [0,0,0,0,0,0,0,0,0,0],
-        [0,1,1,1,1,1,1,1,1,0],
-        [0,1,0,0,0,0,0,0,1,0],
-        [0,0,0,0,0,0,0,0,0,0],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-      ]
-    }
-  ],
-  [
-    {
-      name: "Spike",
-      data: [
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,3,6,3,6,3,7,7,6],
-        [6,1,2,3,2,3,2,3,1,6],
-        [6,1,0,0,0,0,0,0,1,6],
-        [6,0,0,0,0,0,0,0,0,6],
-      ]
-    }
-  ],
-  [
-    {
-      name: "Spike Frame 2",
-      data: [
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,3,6,3,6,3,7,7,6],
-        [7,7,2,3,2,3,2,3,7,7],
-        [6,1,2,2,2,2,2,2,1,6],
-        [6,1,0,0,0,0,0,0,1,6],
-        [6,0,0,0,0,0,0,0,0,6],
-      ]
-    }
-  ],
-  [
-    {
-      name: "Spike Frame 3",
-      data: [
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,3,6,3,6,3,7,7,6],
-        [7,7,2,3,2,3,2,3,7,7],
-        [7,7,2,2,2,2,2,2,7,7],
-        [6,1,2,2,2,2,2,2,1,6],
-        [6,1,0,0,0,0,0,0,1,6],
-        [6,0,0,0,0,0,0,0,0,6],
-      ]
-    }
-  ],
-  [
-    {
-      name: "Text Tile",
-      data: [
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [0,0,0,1,7,7,1,0,0,0],
-        [7,0,7,7,1,1,7,7,0,7],
-        [7,0,7,7,1,1,7,7,0,7],
-        [7,0,7,1,7,7,1,7,0,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-      ]
-    }
-  ],
-  [
-    {
-      name: "Block 1",
-      data: [
-        [0,1,1,4,4,4,4,1,1,0],
-        [1,1,0,0,0,0,0,0,1,1],
-        [1,0,0,1,2,3,1,0,0,1],
-        [4,0,1,3,2,2,3,1,0,4],
-        [4,0,3,2,0,0,2,2,0,4],
-        [4,0,2,2,0,0,2,3,0,4],
-        [4,0,1,3,2,2,3,1,0,4],
-        [1,0,0,1,3,2,1,0,0,1],
-        [1,1,0,0,0,0,0,0,1,1],
-        [0,1,1,4,4,4,4,1,1,0],
-      ]
-    },
-  ],
-  [
-    {
-      name: "Block 2",
-      data: [
-        [0,1,1,0,1,1,0,1,1,0],
-        [1,0,4,1,3,3,1,4,0,1],
-        [1,4,3,3,2,2,3,3,4,1],
-        [0,1,3,1,0,0,1,3,1,0],
-        [1,3,2,0,3,3,0,2,3,1],
-        [1,3,2,0,3,3,0,2,3,1],
-        [0,1,3,1,0,0,1,3,1,0],
-        [1,4,3,3,2,2,3,3,4,1],
-        [1,0,4,1,3,3,1,4,0,1],
-        [0,1,1,0,1,1,0,1,1,0],
-      ]
-    },
-  ],
-  [
-      {
-      name: "Block 3",
-      data: [
-        [1,0,0,1,4,4,1,0,0,1],
-        [0,3,4,0,0,0,0,4,3,0],
-        [0,4,1,0,2,2,0,1,4,0],
-        [1,0,0,0,3,2,0,0,0,1],
-        [4,0,2,2,3,3,3,2,0,4],
-        [4,0,2,3,3,3,2,2,0,4],
-        [1,0,0,0,2,3,0,0,0,1],
-        [0,4,1,0,2,2,0,1,4,0],
-        [0,3,4,0,0,0,0,4,3,0],
-        [1,0,0,1,4,4,1,0,0,1],
-      ]
-    },
-  ],
-  [
-    {
-      name: "Grass Prop 1",
-      data: [
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,7,7,7,7],
-        [7,7,7,7,7,7,2,7,7,7],
-        [7,7,2,7,7,7,2,3,7,7],
-        [7,7,2,7,2,7,7,3,7,7],
-        [7,2,7,7,3,2,7,2,3,7],
-        [7,3,2,7,3,3,2,2,3,7],
-        [2,3,3,2,2,3,2,2,3,3],
-        [2,2,3,2,2,3,3,2,2,3],
-      ]
-    },
-  ]
-];
-
 // remember how many built-in sprites there were
 const originalBuiltInCount = sprites.length;
 
@@ -755,11 +156,6 @@ const originalBuiltInCount = sprites.length;
 
 
     // initialize with one blank level:
-    
-
-    // ==========================
-    // === Module: Functions ===
-    // ==========================
     function makeEmptyLevel() {
       return Array.from({ length: mapRows }, () =>
         Array.from({ length: mapCols }, () =>
@@ -1040,6 +436,7 @@ const originalBuiltInCount = sprites.length;
 
     // Only darken valid 6-digit hex colors; pass others through
     function darkenHex(col, factor) {
+      // If it’s not a "#xxxxxx" string, return it unchanged
       if (typeof col !== "string" || !col.startsWith("#") || col.length !== 7) {
         return col;
       }
@@ -1061,7 +458,7 @@ const originalBuiltInCount = sprites.length;
       if (x < 0 || y < 0 || x >= mapCols || y >= mapRows) return;
 
       const txt = prompt(`Enter text to place at (${x},${y}):`, "");
-      if (txt === null) return;
+      if (txt === null) return;  // user cancelled
 
       // set the tile
       levels[currentLevel][y][x][currentLayer] = TEXT_TILE_ID;
@@ -1204,7 +601,7 @@ const originalBuiltInCount = sprites.length;
       }
     }
 
-    // --- DRAW SINGLE SPRITE UTILITY ---
+    // --- DRAW SPRITE UTILITY ---
     function drawSprite(data, x, y) {
       const spriteDim     = data.length;
       const pixelSize     = Math.floor(tileSize / spriteDim) || 1;
@@ -1226,7 +623,6 @@ const originalBuiltInCount = sprites.length;
       }
     }
 
-    // draw player
     function drawPlayer() {
       drawSprite(player.sprite, player.x - camX, player.y - camY);
     }
@@ -1249,7 +645,6 @@ const originalBuiltInCount = sprites.length;
       }
     }
 
-    // move camera
     function moveCamera() {
       if (keys["ArrowLeft"] || keys["a"]) camX -= 10;
       if (keys["ArrowRight"] || keys["d"]) camX += 10;
@@ -1271,7 +666,7 @@ const originalBuiltInCount = sprites.length;
       return [x, y];
     }
 
-        // --- SAVE / LOAD ---
+        // --- SAVE / LOAD & GENERATE ---
     function saveAllLevels() {
       const data = JSON.stringify(levels);
       console.log("All Levels JSON:", data);
@@ -1406,7 +801,6 @@ const originalBuiltInCount = sprites.length;
       }
     }
 
-    // UPDATE
     function update() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -1559,7 +953,7 @@ const originalBuiltInCount = sprites.length;
       requestAnimationFrame(update);
     }
 
-    // --- TILE PALETTE BRUSH UI ---
+    // --- TILE BRUSH UI ---
     function createTileBrushes() {
       const container = document.getElementById("tileBrushes");
       container.innerHTML = "";
@@ -1640,8 +1034,8 @@ const originalBuiltInCount = sprites.length;
       });
     }
 
-    // displays hover tooltips
     function drawBrushHoverTooltips() {
+      // grab all canvases inside the brush container
       const tooltips = document.querySelectorAll("#tileBrushes canvas");
 
       tooltips.forEach(c => {
@@ -1698,7 +1092,7 @@ const originalBuiltInCount = sprites.length;
     const grid    = document.getElementById('spriteGrid');
     const nameInp = document.getElementById('spriteEditorName');
     const saveBtn = document.getElementById('spriteEditorSave');
-    const cancelBtn = document.getElementById('spriteEditorCancel');
+    const cancelB = document.getElementById('spriteEditorCancel');
 
     let editData = [];
 
@@ -1734,7 +1128,6 @@ const originalBuiltInCount = sprites.length;
       });
     }
 
-    // add more categories here
     function makeBrushCategories() {
       const all       = sprites.map((_, i) => i).filter(i => ![24,25,26,29,30].includes(i));
       const painted   = sprites.map((_, i) => i)
@@ -1756,7 +1149,7 @@ const originalBuiltInCount = sprites.length;
       nameInp.value = '';
       modal.style.display = 'block';
     });
-    cancelBtn.addEventListener('click', () => {
+    cancelB.addEventListener('click', () => {
       modal.style.display = 'none';
     });
     saveBtn.addEventListener('click', () => {
@@ -1804,6 +1197,7 @@ const originalBuiltInCount = sprites.length;
       modal.style.display = 'none';
     });
 
+    // extend your existing paletteSelector handler:
     const sel = document.getElementById("paletteSelector");
     sel.onchange = e => {
       palette = palettes[e.target.value];
@@ -1814,48 +1208,62 @@ const originalBuiltInCount = sprites.length;
       }
     };
 
-    // load sprites
     const loader = document.getElementById('loadSpriteLoader');
     loader.addEventListener('change', e => {
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
+
       reader.onload = () => {
-        let imported;
+        const text = reader.result;
+        const match = text.match(/const\s+sprites\s*=\s*(\[[\s\S]*\]);?/);
+        if (!match) {
+          return alert('Invalid format: couldn’t find "const sprites = [ … ];"');
+        }
+        let importedArray;
         try {
-          imported = JSON.parse(reader.result);
-        } catch(err) {
-          return alert("Invalid JSON: " + err.message);
+          importedArray = (new Function(`"use strict"; return ${match[1]}`))();
+        } catch (err) {
+          return alert('Error parsing sprites array: ' + err.message);
         }
-        if (!Array.isArray(imported)) {
-          return alert("Expected an array of sprite buckets!");
-        }
-        // Basic validation: each bucket is an array of {name,data}
-        if (!imported.every(bucket =>
-              Array.isArray(bucket) &&
-              bucket.every(s => typeof s.name === 'string' && Array.isArray(s.data))
-            )) {
-          return alert("JSON format mismatch: make sure it's an array of [{name,data},…] buckets.");
+        if (!Array.isArray(importedArray)) {
+          return alert('Parsed value is not an array.');
         }
 
-        // Replace your in-memory sprites
-        sprites = imported;
+        // Map flat objects to your bucket format
+        const importedBuckets = importedArray
+          .filter(obj => obj.name && Array.isArray(obj.data))
+          .map(obj => [{ name: obj.name, data: obj.data }]);
 
-        // Rebuild brushes & refresh sprite editor if open
+        // Replace or append
+        importedBuckets.forEach(newBucket => {
+          const newName = newBucket[0].name;
+          // find existing sprite by name
+          const existingIndex = sprites.findIndex(
+            bucket => bucket[0]?.name === newName
+          );
+          if (existingIndex >= 0) {
+            // overwrite data
+            sprites[existingIndex] = newBucket;
+          } else {
+            // brand new sprite
+            sprites.push(newBucket);
+          }
+        });
+
+        // Refresh the UI
         createTileBrushes();
-        if (modal.style.display === 'block') {
-          repaintEditorGrid();
-          renderEditorPaletteSwatch();
-        }
-
-        alert(`Loaded ${sprites.length} sprite buckets from "${file.name}"`);
+        alert(`Imported ${importedBuckets.length} sprites (replaced ${importedBuckets.filter(b => 
+          sprites.findIndex(sb => sb[0].name === b[0].name) >= 0
+        ).length} existing, added ${importedBuckets.length - importedBuckets.filter(b => 
+          sprites.findIndex(sb => sb[0].name === b[0].name) >= 0
+        ).length} new).`);
       };
-      reader.readAsText(file);
 
-      // clear the input so you can reload the same file if needed
+      reader.readAsText(file);
       e.target.value = '';
     });
 
     // --- STARTUP ---
     createTileBrushes();
-    update();
+    update();  // kick off main loop
