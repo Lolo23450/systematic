@@ -472,21 +472,27 @@ const originalBuiltInCount = sprites.length;
     }
 
     // Only darken valid 6-digit hex colors; pass others through
-    function darkenHex(col, factor) {
-      // If it’s not a "#xxxxxx" string, return it unchanged
-      if (typeof col !== "string" || !col.startsWith("#") || col.length !== 7) {
-        return col;
-      }
-      const r = parseInt(col.slice(1,3), 16),
-            g = parseInt(col.slice(3,5), 16),
-            b = parseInt(col.slice(5,7), 16);
-      const rr = Math.floor(r * factor),
-            gg = Math.floor(g * factor),
-            bb = Math.floor(b * factor);
-      return "#" +
-        rr.toString(16).padStart(2,"0") +
-        gg.toString(16).padStart(2,"0") +
-        bb.toString(16).padStart(2,"0");
+    function deriveDark(palette) {
+      return palette.map(color => {
+        if (color.startsWith("rgba")) return color; // keep transparency as-is
+        const rgb = hexToRgb(color);
+        const darkened = {
+          r: Math.floor(rgb.r * 0.5),
+          g: Math.floor(rgb.g * 0.5),
+          b: Math.floor(rgb.b * 0.5)
+        };
+        return `rgb(${darkened.r},${darkened.g},${darkened.b})`;
+      });
+    }
+
+    function hexToRgb(hex) {
+      hex = hex.replace("#", "");
+      const bigint = parseInt(hex, 16);
+      return {
+        r: (bigint >> 16) & 255,
+        g: (bigint >> 8) & 255,
+        b: bigint & 255
+      };
     }
 
     function placeTextTile(e) {
@@ -519,7 +525,7 @@ const originalBuiltInCount = sprites.length;
 
     let globalTick     = 0;       // increments every drawLevel call
 
-    const darkPalette = palette.map(col => darkenHex(col, 0.5));
+    let darkPalette = deriveDark(palette);
 
     let tileCache       = {};      // holds *all* non-animated, static tile images
     let animTileCache   = {};      // holds only animated frames for animated IDs
@@ -545,7 +551,6 @@ const originalBuiltInCount = sprites.length;
     // 2) Build or rebuild your animated frames at up to 20 FPS:
     function buildAnimatedCache() {
       animTileCache = {};  // reset
-      const frameIndex = Math.floor(performance.now() / ANIM_INTERVAL) % spikeFrames.length;
       
       // rebuild only the spike frames (or any other animated IDs)
       for (let f = 0; f < spikeFrames.length; f++) {
@@ -554,6 +559,61 @@ const originalBuiltInCount = sprites.length;
       }
       
       lastCacheUpdate = performance.now();
+    }
+
+    // track versions per layer
+    let paletteVersions = [0, 0];  // index 0 for layer0, index1 for layer1
+
+    // assume you have two palette arrays, e.g.:
+    // layer 0 uses darkPalette, layer 1 uses palette
+    function onPaletteChangeForLayer(layerIndex, newArr) {
+      if (layerIndex === 0) {
+        darkPalette = deriveDark(newArr);
+      } else if (layerIndex === 1) {
+        palette = newArr;
+      } else {
+        console.warn("unexpected layer", layerIndex);
+        return;
+      }
+
+      // bump only that layer’s version
+      paletteVersions[layerIndex]++;
+
+      // throw away only the canvases for that layer
+      // filter out any keys matching `:<layerIndex>:`  
+      Object.keys(tileCache).forEach(key => {
+        if (key.split(':')[2] == layerIndex) {
+          delete tileCache[key];
+        }
+      });
+      Object.keys(animTileCache).forEach(key => {
+        if (key.split(':')[2] == layerIndex) {
+          delete animTileCache[key];
+        }
+      });
+
+      // rebuild *just* that layer’s canvases
+      rebuildLayerInStaticCache(layerIndex);
+      rebuildLayerInAnimCache(layerIndex);
+    }
+
+    function rebuildLayerInStaticCache(layerIndex) {
+      for (let id in sprites) {
+        // skip animated bases if needed
+        for (let frame = 0; frame < sprites[id].length; frame++) {
+          buildTileCanvas(id, frame, layerIndex, /*flags*/"", tileCache);
+          // if you only ever use frame 0 in static cache, drop the frame loop
+        }
+      }
+    }
+
+    function rebuildLayerInAnimCache(layerIndex) {
+      // same idea, but only for your animatable IDs on that layer
+      // e.g. if only spikes animate on layer0:
+      if (layerIndex === 0) {
+        animTileCache = {};    // or just delete layer-0 entries as above
+        buildAnimatedCache();  // which will re-bake layer0’s frames
+      }
     }
 
     // 3) A helper to bake *one* tile into your chosen cache:
@@ -1395,7 +1455,20 @@ const originalBuiltInCount = sprites.length;
     // extend your existing paletteSelector handler:
     const sel = document.getElementById("paletteSelector");
     sel.onchange = e => {
-      palette = palettes[e.target.value];
+      const newPalette = palettes[e.target.value];
+      palette = newPalette;
+
+      // rebuild tile caches
+      tileCache     = {};
+      animTileCache = {};
+
+      // update both layers
+      onPaletteChangeForLayer(0, newPalette);
+      onPaletteChangeForLayer(1, newPalette);
+
+      buildStaticTileCache();
+      buildAnimatedCache();
+
       createTileBrushes();
       if (modal.style.display === 'block') {
         repaintEditorGrid();
