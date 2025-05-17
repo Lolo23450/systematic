@@ -1,124 +1,121 @@
-# Systematic
-https://lolo23450.github.io/systematic/
-- Performance boost coming soon!
-
-A web‐based **pixel platformer level editor** and playtester—fully in your browser. Create, edit, sprite, and play your own 2D platformer levels without writing a single line of engine code!
+# Systematic  
+https://lolo23450.github.io/systematic/  
+A web-based **pixel platformer level editor** and playtester—fully in your browser. Create, edit, sprite, and play your own 2D platformer levels without writing a single line of engine code!
 
 ---
 
 ## Features
 
-- **Tile Palette & Tile Categories**
-  - 30+ Tiles organized in different categories.
-  - Fully expandable using UI.
- 
+- **Tile Palette & Tile Categories**  
+  - 30+ tiles organized into categories  
+  - Live‐expandable via UI  
   ![Palette UI](assets/readme-imgs/tilepalette.png)
 
-- **Grid-based tile editor**  
-  – Paint terrain, background, objects, spikes, bounce pads, platforms, text tiles, and more.  
-  – Click-and-drag painting; right-click tiles custom properties.
-
+- **Grid-based Editing**  
+  - Paint terrain, background, objects, spikes, bounce pads, platforms, text tiles, and more  
+  - Click-and-drag painting; right-click for per-tile properties  
   ![Grid](assets/readme-imgs/grid.png)
 
-- **Multi-level support**  
-  – Create, rename, navigate, and delete levels.  
-  – Save & load **all** levels as JSON.
+- **Multi-level Support**  
+  - Create, navigate, rename, and delete levels  
+  - All levels can be exported/imported as JSON  
 
-- **Custom color palettes**  
-  – 10+ built-in palettes (Forest, Desert, Tundra, Swamp, …).  
-  – Live preview & palette swatches in the sprite editor.
-
+- **Custom Color Palettes**  
+  - 10+ built-in palettes (Forest, Desert, Tundra, Swamp, …)  
+  - Live preview & swatch picker in sprite editor  
   ![Color Palettes](assets/readme-imgs/colorpalettes.png)
 
-- **Layered editing**  
-  – Background & terrain layers (expandable).  
-  – Control visibility and paint order.
-
+- **Layered Editing**  
+  - Background & terrain layers (plus extensible object layer)  
+  - Control visibility, paint order, and per-tile schemas  
   ![Layers](assets/readme-imgs/layers.png)
 
-- **Playtest mode**  
-  – Switch between **Edit** & **Play** to immediately try your level.  
-  – Built-in physics: gravity, jump, dash, one-way platforms, bounce pads, and spike hazards.
+- **Playtest Mode**  
+  - Switch between **Edit** & **Play** instantly  
+  - Built-in physics: gravity, jump, one-way platforms, bounce pads, spikes  
 
-- **Sprite editor**  
-  – Draw new 10×10 pixel sprites.  
-  – Assign palette indices and give each sprite a name.  
-  – Load & merge external sprite JSON files.
-
+- **Sprite Editor**  
+  - Draw new 10×10 pixel sprites, assign palette indices, name them  
+  - Import & merge external sprite JSON  
   ![Sprite Editor](assets/readme-imgs/spriteeditor.png)
 
-- **Custom tile properties**  
-  – Bounce pads: adjustable jump strength.  
-  – One-way platforms: toggle “allow drop” (press S).  
-  – Extendable schema—add your own.
+- **Custom Tile Properties**  
+  - Bounce pads: adjustable jump strength  
+  - One-way platforms: toggle “allow drop” (press S)  
+  - Extendable schema for new tile types  
 
-- **Open-source & attribution**  
-  – Licensed under MIT—free to use, modify, and share with credit to the original author.
+- **Open-source & Attribution**  
+  - Licensed under MIT—free to use, modify, share with credit  
 
 ---
+
+## Level Persistence & Sharing
+
+### Auto-Save in Browser  
+- Edits (painting, adding/removing levels, property changes) are saved automatically to `localStorage`.  
+- On page load, your last session is restored—no extra clicks needed.
+
+### Export/Import JSON  
+- **Save All Levels** downloads a `levels.json` file containing every level.  
+- **Load All Levels** lets you pick a `.json` file to import—levels overwrite your current work and become your new auto-save.
+
+### Shareable & Bookmarkable URLs  
+- Your entire level set is compressed (via LZ-String) and encoded into the URL hash.  
+- As you edit, the URL updates in real-time—copy/paste to share your exact levels!  
+- Opening someone’s link decodes the hash and loads their levels instantly, no file download required.
 
 ## Installation
 
 1. Clone or download this repo  
-2. Open `index.html` in any modern browser  
-3. Start editing—no build step required!
+2. Open `index.html` in any modern browser (no build step required)  
 
 ---
 
 ## Controls
 
-### Editor Mode
+### Editor Mode  
+- **Left-click & drag**: paint current tile  
+- **Right-click**: open tile properties sidebar  
+- **Mouse wheel**: zoom in/out  
+- **Arrow keys / WASD**: pan camera  
 
-- **Left-click & drag**: Paint current tile  
-- **Right-click**: Open tile properties sidebar (if supported)  
-- **Mouse wheel**: Zoom in/out  
-- **Arrow keys / WASD**: Pan camera
+### Toolbar  
+- **Tile Search**: filter brushes by name or ID  
+- **Category**: switch brush groups  
+- **Palette**: change colors  
+- **Layer**: select edit layer  
+- **🖌️**: open sprite editor  
+- **📂**: import external sprites  
 
-### Toolbar
+### Level Controls  
+- **← Prev / Next →**: switch levels  
+- **+ Add Level**: create a blank level  
+- **Save All Levels**: download JSON & auto-save in browser  
+- **Load All Levels**: import JSON from disk  
+- **Restore Last Save**: reload from browser storage  
 
-- **Tile Search**: Filter brushes by name or ID  
-- **Category**: Quickly switch brush groups  
-- **Palette**: Change colors for brushes & sprite editor  
-- **Layer**: Select background or terrain layer  
-- **🖌️**: Open sprite editor  
-- **📂**: Load external sprites from JSON  
-
-### Level Controls
-
-- **← Prev / Next →**: Switch between levels  
-- **+ Add Level**: Create a new blank level  
-- **Save All Levels**: Export JSON to console  
-- **Load All Levels**: Paste JSON to import levels  
-
-### Playtest Mode
-
-- **W / Arrow Up**: Jump  
-- **A / Arrow Left**, **D / Arrow Right**: Move  
-- **S / Arrow Down**: Drop through one-way platforms (if enabled)
+### Playtest Mode  
+- **W / ↑**: jump  
+- **A / ←**, **D / →**: move  
+- **S / ↓**: drop through one-ways  
 
 ---
 
 ## 🛠️ Extending the Editor
 
-- **Add new tile types**:  
-  1. Add a sprite array in `sprites` with your pixel data  
-  2. Include its ID in your brush categories (in `makeBrushCategories()`)  
-  3. Optionally define `tilePropertySchemas[ID]` for custom fields  
-  4. Handle placement & rendering logic in `paintAt()` and `drawLevel()`
+- **Add new tiles**:  
+  1. Add your sprite to the `sprites` array  
+  2. Include its ID in `makeBrushCategories()`  
+  3. Define any custom fields in `tilePropertySchemas`  
+  4. Extend `paintAt()` and `drawSingleTile()` as needed  
 
-- **Custom physics**: Extend `isSolid()`, `isOneWayTile()`, `isBounceTile()`, etc., and hook into the `update()` loop.
-
-- **UI tweaks**: The tile-brush grid, sidebar, and toolbar are built with plain HTML/CSS—feel free to restyle or reorganize.
+- **Custom physics**: Extend `isSolid()`, `isOneWayTile()`, etc., in the `update()` loop.  
+- **UI tweaks**: All UI is plain HTML/CSS—feel free to restyle or reorganize.
 
 ---
 
 ## License & Attribution
 
-This project is licensed under the **MIT License**.  
+Licensed under the **MIT License**.  
 © 2025 lolo2345 — Attribution required.  
-
 See [LICENSE](LICENSE) for full text.
-
----
-
-_Ready to build your dream platformer? Dive in, get creative, and share your levels with the world!_ 🐾✨  
