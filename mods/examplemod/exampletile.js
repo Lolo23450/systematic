@@ -16,6 +16,7 @@ const heavySpringSprite = [
 SystematicAPI.registerTile({
   id: 99,
   name: "Heavy Spring",
+  category: "Example Mod",
   sprite: heavySpringSprite,
   properties: { bounce: 20 }
 });

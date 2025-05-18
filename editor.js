@@ -45,6 +45,9 @@ window.SystematicAPI = (function(){
     buildTileCanvas(sid, 0, /*layer=*/0, "", tileCache);
     buildTileCanvas(sid, 0, /*layer=*/1, "", tileCache);
     // 4) rebuild brushes UI
+    addSpriteToCategory("All", def.id)
+    addSpriteToCategory(def.category, def.id)
+    updateCategorySelector();
     createTileBrushes();
     console.log("Registered custom tile:", sid, def.name);
     };
@@ -189,15 +192,21 @@ const TEXT_TILE_ID = 31
 const originalBuiltInCount = sprites.length;
 
     // brush categories
-    let brushCategories = {
-      "All":              [0],
-      "Terrain":          [0],
-      "Cobblestone":      [0],
-      "Wood":             [0],
-      "Ancient Stones":   [0],
-      "Other":            [0],
-      "Painted":          [0]
+    const all       = sprites.map((_, i) => i).filter(i => ![24,25,26,29,30].includes(i));
+    const painted   = sprites.map((_, i) => i)
+                            .filter(i => i >= originalBuiltInCount);
+    let builtinCategories = {
+      "All":        all,
+      "Terrain":    [0,1,2,3,4,35,38,37],
+      "Cobblestone":[0,7,8,9,10,11,12,13,14],
+      "Wood":       [0,21,22],
+      "Ancient Stones":[5,6,15,16,17,18,19,20,32,33,34],
+      "Other":      [0,23,27,28,31,36],
+      "Painted":    painted
     };
+
+    let brushCategories = {};
+
     let currentCategory = "All";
     let tileSearchQuery = "";
 
@@ -303,10 +312,8 @@ const originalBuiltInCount = sprites.length;
     restoreBtn.onclick   = loadAllLevelsFromStorage;
     document.getElementById("levelControls").appendChild(restoreBtn);
 
-    // Populate category dropdown
     const catSel = document.getElementById("categorySelector");
-    catSel.innerHTML = Object.keys(brushCategories)
-        .map(name => `<option>${name}</option>`).join("");
+    // Populate category dropdown
     catSel.onchange = e => {
       currentCategory = e.target.value;
       createTileBrushes();
@@ -1439,6 +1446,46 @@ const originalBuiltInCount = sprites.length;
       requestAnimationFrame(update);
     }
 
+    // 3) unify them every time you build the UI
+    function makeBrushCategories() {
+      // start with a shallow copy of the built-ins
+      const cats = { ...builtinCategories };
+
+      // merge in any mod-defined categories/sprites
+      for (const [catName, ids] of Object.entries(brushCategories)) {
+        if (!cats[catName]) cats[catName] = [];
+        for (const id of ids) {
+          if (!cats[catName].includes(id)) cats[catName].push(id);
+        }
+      }
+
+      return cats;
+    }
+
+    function addSpriteToCategory(category, spriteid) {
+      // If the category doesn't exist, create it as an empty array
+      if (!brushCategories[category]) {
+        brushCategories[category] = [];
+      }
+
+      // Add the sprite id if it's not already in the category
+      if (!brushCategories[category].includes(spriteid)) {
+        brushCategories[category].push(spriteid);
+      }
+    }
+
+    function updateCategorySelector() {
+      brushCategories = makeBrushCategories(); // <-- get fresh categories
+      if (!catSel) {
+        console.error("categorySelector element not found!");
+        return;
+      }
+
+      catSel.innerHTML = Object.keys(brushCategories)
+        .map(name => `<option value="${name}">${name}</option>`)
+        .join("");
+    }
+
     // --- TILE BRUSH UI ---
     function createTileBrushes() {
       const container = document.getElementById("tileBrushes");
@@ -1601,23 +1648,6 @@ const originalBuiltInCount = sprites.length;
         cell.style.background = palette[idx] || 'rgba(0,0,0,0)';
       });
     }
-
-    function makeBrushCategories() {
-      const all       = sprites.map((_, i) => i).filter(i => ![24,25,26,29,30].includes(i));
-      const painted   = sprites.map((_, i) => i)
-                              .filter(i => i >= originalBuiltInCount);
-      return {
-        "All":        all,
-        "Terrain":    [0,1,2,3,4,35,38,37],
-        "Cobblestone":[0,7,8,9,10,11,12,13,14],
-        "Wood":       [0,21,22],
-        "Ancient Stones":[5,6,15,16,17,18,19,20,32,33,34],
-        "Other":      [0,23,27,28,31,36],
-        // now "Painted" only contains indices of sprites you added
-        "Painted":    painted
-      };
-    }
-
     openBtn.addEventListener('click', () => {
       initEditorGrid();
       nameInp.value = '';
@@ -1794,5 +1824,6 @@ const originalBuiltInCount = sprites.length;
     });
 
     // --- STARTUP ---
+    updateCategorySelector();
     createTileBrushes();
     update();  // kick off main loop
