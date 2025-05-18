@@ -1315,6 +1315,8 @@ const originalBuiltInCount = sprites.length;
       player.height   = N * pixelSize;
 
       if (mode === "play") {
+        player._touchingRightPrev = player._touchingRightPrev || false;
+        player._touchingLeftPrev  = player._touchingLeftPrev  || false;
         // Horizontal
         if      (keys["a"] || keys["ArrowLeft"])  player.vx = -moveSpeed;
         else if (keys["d"] || keys["ArrowRight"]) player.vx =  moveSpeed;
@@ -1347,6 +1349,7 @@ const originalBuiltInCount = sprites.length;
                 player.vx = 0;
                 const tx = Math.floor((player.x + player.width/2) / tileSize);
                 const ty = Math.floor((player.y + player.height + 1) / tileSize);
+                touchingRight = true;
                 SystematicAPI.trigger('onPlayerTouchWallRight', player, tx, ty, /*layer=*/1);
                 break;
               }
@@ -1362,6 +1365,7 @@ const originalBuiltInCount = sprites.length;
                 player.vx = 0;
                 const tx = Math.floor((player.x + player.width/2) / tileSize);
                 const ty = Math.floor((player.y + player.height + 1) / tileSize);
+                touchingLeft = true;
                 SystematicAPI.trigger('onPlayerTouchWallLeft', player, tx, ty, /*layer=*/1);
                 break;
               }
@@ -1369,6 +1373,13 @@ const originalBuiltInCount = sprites.length;
           }
         } else {
           player.x = nextX;
+        }
+
+        if (!touchingRight && player._touchingRightPrev) {
+          SystematicAPI.trigger('onPlayerStopTouchWallRight', player);
+        }
+        if (!touchingLeft && player._touchingLeftPrev) {
+          SystematicAPI.trigger('onPlayerStopTouchWallLeft', player);
         }
 
         // Gravity + Move
