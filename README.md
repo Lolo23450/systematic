@@ -218,9 +218,91 @@ SystematicAPI.trigger('onPlayerDoubleJump', player);
 
 ---
 
-This structure allows modders to add new gameplay mechanics, input handling, and interactions by registering functions to hooks and using the API to modify the player state or trigger events.
+### Register Functions
 
-If you need more details or examples, feel free to ask me!
+There are two register functions:
+```js
+SystematicAPI.registerTile({
+```
+```js
+SystematicAPI.registerColorPalette({
+```
+
+### Register Tile
+
+Register Tile is used to define new tiles that you can use in the editor, they must have these 5 attributes:
+
+* `id`: Tile id used by the editor.
+* `name`: Name of the tile used by the editor
+* `category`: The name of the category in which the tile will be added to, if a category doesnt exist, it will create a new one
+* `sprite`: Sprite of the tile, same array format used by the editor
+* `properties`: Custom properties of the tile
+ 
+Example Attributes for Register Tile:
+```js
+// 1. define the sprite
+const heavySpringSprite = [
+  [7,7,7,7,7,7,7,7,7,7],
+  [7,7,7,7,7,7,7,7,7,7],
+  [7,7,7,7,7,7,7,7,7,7],
+  [7,2,2,2,2,2,2,2,2,7],
+  [7,2,3,3,3,3,3,3,2,7],
+  [7,7,7,1,1,0,7,7,7,7],
+  [7,7,7,7,0,1,1,7,7,7],
+  [7,7,7,1,1,0,7,7,7,7],
+  [7,0,0,0,0,0,0,0,0,7],
+  [7,0,1,1,1,1,1,1,0,7],
+];
+
+// 2. register the tile with its attributes
+SystematicAPI.registerTile({
+  id: 99,
+  name: "Heavy Spring",
+  category: "Example Mod",
+  sprite: heavySpringSprite,
+  properties: { bounce: 20 }
+});
+```
+---
+### Add hooks to registered tiles
+To add hooks to register tiles, you can attach the hooks into the definition like this:
+```js
+// 3. add hooks
+SystematicAPI.on("onPlayerTouchGround", (player, tx, ty, layer) => {
+  const def = SystematicAPI.getTileDef(levels[currentLevel][ty]?.[tx]?.[layer]); // leave this like it is most of the time
+  if (def?.id === 99) { // your tile id
+    player.vy = -def.properties.bounce; // use the registered tile's properties
+    animateTileOnce(layer, tx, ty, [25,24,23,26,26,99], 32); // animate the tile
+  }
+});
+```
+
+### Register Color Palette
+Register Color Palette is used to define new plattes that you can use in the editor, they must follor this format:
+```js
+SystematicAPI.registerColorPalette("Mossy Grove", [
+  "#3b4a2f", // deep moss shadow (dark forest floor)
+  "#66794b", // moss base (soft leafy green)
+  "#8ca16c", // fresh moss highlight (brighter green)
+  "#b6c396", // sunlit moss (light leafy patches)
+  "#a48a6d", // damp soil (earthy brown)
+  "#d6c9b1", // fallen leaves (soft beige)
+  "#c2d8b0", // light misty sky (pale green-gray)
+  "rgba(0,0,0,0)" // transparent
+]);
+```
+
+### Built in Functions
+There are some built in functions to help with development. There arent that many, so i will include the most useful one:
+
+* **`animateTileOnce(layer, x, y, frames, fps)`**
+  Places different tiles in a sequence to simulate an animation, can also be used to place tiles
+
+Usage Example: animateTileOnce(1, tx, ty, [25,24,23,26,26,23], 32);
+
+---
+
+This structure allows modders to add new gameplay mechanics, input handling, and interactions by registering functions to hooks and using the API to modify the player state or trigger events.
 
 ---
 
