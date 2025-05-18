@@ -125,19 +125,23 @@ Common hooks include:
   Called every frame during the game update. Provides access to the current player object and the state of input keys.
 
 * **`onPlayerJump(player)`**
-  Called when the player performs a jump.
-
+  Called when the player performs a jump, returns player attributes like x, y, vx, vy, height, width, etc
+  
 * **`onPlayerTouchGround(player)`**
-  Called when the player lands on the ground.
+  Called when the player lands on the ground, returns player attributes like x, y, vx, vy, height, width, etc
 
 * **`onPlayerTouchWallRight(player, tileX, tileY, layer)`**
-  Called when the player touches a wall on the right.
+  Called when the player touches a wall on the right, returns player attributes like x, y, vx, vy, height, width, etc, and where the event happened (tx,ty,layer).
 
 * **`onPlayerTouchWallLeft(player, tileX, tileY, layer)`**
-  Called when the player touches a wall on the left.
+  Called when the player touches a wall on the left, returns player attributes like x, y, vx, vy, height, width, etc, and where the event happened (tx,ty,layer).
 
 * **`onPlayerBounce(player, tileX, tileY, layer)`**
-  Called when the player bounces on a special tile.
+  Called when the player bounces on a spring, returns player attributes like x, y, vx, vy, height, width, etc, and where the event happened (tx,ty,layer).
+
+* **`onKeyDown(key)`**
+  Called when a key is pressed, returns the key pressed.
+
 
 ### Player Object
 
