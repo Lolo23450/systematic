@@ -14,66 +14,8 @@ const mapRows  = 30;
 let mode = "edit"; // "edit" or "play"
 let camX = 0, camY = 0;
 
-
-// MODDING API
-
-// CORE
-window.SystematicAPI = (function(){
-  const api = {};
-  api.tiles        = {};        // store definitions by string-ID
-  api.customIds    = [];        // keep track of non-built-in IDs
-
-  /**
-   * def.id         = unique number or string tile ID
-   * def.name       = display name for tooltips
-   * def.sprite     = 2D array of palette‐indices (same format as sprites[…].data)
-   * def.properties = arbitrary object
-   * def.onPlace?   = function(x,y,layer){…}
-   * def.onPlayerLand? = function(player,x,y,layer){…}
-   */
-  api.registerTile = function(def) {
-    if (def.id == null) throw new Error("Tile needs an id");
-    const sid = String(def.id);
-    if (api.tiles[sid]) console.warn("Overwriting tile", sid);
-    api.tiles[sid] = def;
-
-    // 1) inject into sprites[] for rendering caches
-    sprites[sid] = [{ data: def.sprite || [[-1]], name: def.name }];
-    // 2) track as “custom”
-    api.customIds.push(sid);
-    // 3) bake into caches immediately
-    buildTileCanvas(sid, 0, /*layer=*/0, "", tileCache);
-    buildTileCanvas(sid, 0, /*layer=*/1, "", tileCache);
-    // 4) rebuild brushes UI
-    addSpriteToCategory("All", def.id)
-    addSpriteToCategory(def.category, def.id)
-    updateCategorySelector();
-    createTileBrushes();
-    console.log("Registered custom tile:", sid, def.name);
-    };
-
-    api.getTileDef = function(id) {
-      return api.tiles[String(id)] || null;
-    };
-
-    const listeners = {};
-
-    api.on = (eventName, fn) => {
-      if (!listeners[eventName]) listeners[eventName] = [];
-      listeners[eventName].push(fn);
-    };
-
-    api.trigger = (eventName, ...args) => {
-      (listeners[eventName] || []).forEach(fn => {
-        try { fn(...args); }
-        catch (err) { console.error(`hook ${eventName} threw`, err); }
-      });
-    };
-
-  return api;
-})();
-
-const palettes = {
+const palsel = document.getElementById("paletteSelector");
+window.palettes = {
   "Forest": [
     "#1d1b2a", // shadow base (deep soil/dark tree root)
     "#3e3c5e", // transition shadow (stone or bark detail)
@@ -186,6 +128,82 @@ const palettes = {
   ],
 };
 
+// MODDING API
+
+// CORE
+window.SystematicAPI = (function(){
+  const api = {};
+  api.tiles        = {};        // store definitions by string-ID
+  api.customIds    = [];        // keep track of non-built-in IDs
+
+  /**
+   * def.id         = unique number or string tile ID
+   * def.name       = display name for tooltips
+   * def.sprite     = 2D array of palette‐indices (same format as sprites[…].data)
+   * def.properties = arbitrary object
+   * def.onPlace?   = function(x,y,layer){…}
+   * def.onPlayerLand? = function(player,x,y,layer){…}
+   */
+  api.registerTile = function(def) {
+    if (def.id == null) throw new Error("Tile needs an id");
+    const sid = String(def.id);
+    if (api.tiles[sid]) console.warn("Overwriting tile", sid);
+    api.tiles[sid] = def;
+
+    // 1) inject into sprites[] for rendering caches
+    sprites[sid] = [{ data: def.sprite || [[-1]], name: def.name }];
+    // 2) track as “custom”
+    api.customIds.push(sid);
+    // 3) bake into caches immediately
+    buildTileCanvas(sid, 0, /*layer=*/0, "", tileCache);
+    buildTileCanvas(sid, 0, /*layer=*/1, "", tileCache);
+    // 4) rebuild brushes UI
+    addSpriteToCategory("All", def.id)
+    addSpriteToCategory(def.category, def.id)
+    updateCategorySelector();
+    createTileBrushes();
+    console.log("Registered custom tile:", sid, def.name);
+    };
+
+  api.getTileDef = function(id) {
+    return api.tiles[String(id)] || null;
+  };
+
+  const listeners = {};
+
+  api.on = (eventName, fn) => {
+    if (!listeners[eventName]) listeners[eventName] = [];
+    listeners[eventName].push(fn);
+  };
+
+  api.trigger = (eventName, ...args) => {
+    (listeners[eventName] || []).forEach(fn => {
+      try { fn(...args); }
+      catch (err) { console.error(`hook ${eventName} threw`, err); }
+    });
+  };
+
+  api.registerColorPalette = function(name, colorArray) {
+  if (typeof name !== "string" || !Array.isArray(colorArray)) {
+    throw new Error("registerColorPalette(name: string, colorArray: string[])");
+  }
+  // Optional: validate each entry is a CSS color string
+  colorArray.forEach((c, i) => {
+    if (typeof c !== "string") {
+      console.warn(`Palette "${name}" index ${i} is not a string:`, c);
+    }
+  });
+
+  // Store into the global palettes object
+  window.palettes[name] = colorArray;
+
+  // Update any UI you have for palette selection!
+  updatePaletteSelector(palsel);
+};
+
+  return api;
+})();
+
 const TEXT_TILE_ID = 31
 
 // remember how many built-in sprites there were
@@ -274,10 +292,17 @@ const originalBuiltInCount = sprites.length;
       ]
     };
 
-    document.getElementById("paletteSelector").innerHTML = Object.keys(palettes)
-      .map(name => `<option value="${name}">${name}</option>`).join("");
-    document.getElementById("paletteSelector").onchange = e => {
-      palette = palettes[e.target.value];
+    updatePaletteSelector(palsel);
+
+    function updatePaletteSelector(palsel) {
+      if (!palsel) return;
+      palsel.innerHTML = Object.keys(window.palettes)
+        .map(name => `<option value="${name}">${name}</option>`)
+        .join("");
+    }
+
+    palsel.onchange = e => {  // use palsel directly, no getElementById here
+      palette = window.palettes[e.target.value];
       createTileBrushes();
     };
 
@@ -1825,5 +1850,6 @@ const originalBuiltInCount = sprites.length;
 
     // --- STARTUP ---
     updateCategorySelector();
+    updatePaletteSelector(palsel);
     createTileBrushes();
     update();  // kick off main loop
