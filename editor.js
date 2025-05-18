@@ -47,26 +47,28 @@ window.SystematicAPI = (function(){
     // 4) rebuild brushes UI
     createTileBrushes();
     console.log("Registered custom tile:", sid, def.name);
-  };
+    };
 
-  api.getTileDef = function(id) {
-    return api.tiles[String(id)] || null;
-  };
+    api.getTileDef = function(id) {
+      return api.tiles[String(id)] || null;
+    };
+
+    const listeners = {};
+
+    api.on = (eventName, fn) => {
+      if (!listeners[eventName]) listeners[eventName] = [];
+      listeners[eventName].push(fn);
+    };
+
+    api.trigger = (eventName, ...args) => {
+      (listeners[eventName] || []).forEach(fn => {
+        try { fn(...args); }
+        catch (err) { console.error(`hook ${eventName} threw`, err); }
+      });
+    };
 
   return api;
 })();
-
-// HOOKS
-// COLLISION HOOK
-function checkPlayerTileCollision(player) {
-  const tx     = Math.floor((player.x + player.width / 2) / tileSize);
-  const ty     = Math.floor((player.y + player.height + 1) / tileSize);
-  const id     = levels[currentLevel][ty]?.[tx]?.[1];  // terrain layer
-  const def    = SystematicAPI.getTileDef(id);
-  if (def && typeof def.onPlayerLand === "function") {
-    def.onPlayerLand.call(def, player, tx, ty, /*layer=*/1);
-  }
-}
 
 const palettes = {
   "Forest": [
@@ -1267,7 +1269,6 @@ const originalBuiltInCount = sprites.length;
 
     function update() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
       const gravity   = gravityTiles * tileSize;
       const jumpPower = jumpTiles  * tileSize;
       const moveSpeed = moveTiles  * tileSize;
@@ -1286,6 +1287,7 @@ const originalBuiltInCount = sprites.length;
         if ((keys["w"] || keys["ArrowUp"]) && player.onGround) {
           player.vy       = jumpPower;
           player.onGround = false;
+          SystematicAPI.trigger('onPlayerJump', player);
         }
 
         player.x  += player.vx;
@@ -1306,6 +1308,9 @@ const originalBuiltInCount = sprites.length;
                 const col = Math.floor(rightEdge / tileSize);
                 player.x = col * tileSize - player.width;
                 player.vx = 0;
+                const tx = Math.floor((player.x + player.width/2) / tileSize);
+                const ty = Math.floor((player.y + player.height + 1) / tileSize);
+                SystematicAPI.trigger('onPlayerTouchWallRight', player, tx, ty, /*layer=*/1);
                 break;
               }
             }
@@ -1318,6 +1323,9 @@ const originalBuiltInCount = sprites.length;
                 const col = Math.floor(leftEdge / tileSize);
                 player.x = (col + 1) * tileSize;
                 player.vx = 0;
+                const tx = Math.floor((player.x + player.width/2) / tileSize);
+                const ty = Math.floor((player.y + player.height + 1) / tileSize);
+                SystematicAPI.trigger('onPlayerTouchWallLeft', player, tx, ty, /*layer=*/1);
                 break;
               }
             }
@@ -1338,6 +1346,9 @@ const originalBuiltInCount = sprites.length;
             const tileHY = Math.floor(nextHeadY / tileSize);
             player.vy   = 0;
             player.y    = (tileHY + 1) * tileSize;
+            const tx = Math.floor((player.x + player.width/2) / tileSize);
+            const ty = Math.floor((player.y + player.height + 1) / tileSize);
+            SystematicAPI.trigger('onPlayerTouchCeiling', player, tx, ty, /*layer=*/1);
           }
         }
 
@@ -1383,6 +1394,8 @@ const originalBuiltInCount = sprites.length;
             player.vy       = 0;
             player.onGround = true;
             player.y        = tileRow * tileSize - player.height;
+
+            SystematicAPI.trigger('onPlayerTouchGround', player, tileLX, tileRow, 1);
           }
         }
 
@@ -1397,6 +1410,10 @@ const originalBuiltInCount = sprites.length;
           player.vy       = jumpPower * str;
           player.onGround = false;
           animateTileOnce(1, bc, br, [25,24,23,26,26,23], 32);
+
+          const tx = Math.floor((player.x + player.width/2) / tileSize);
+          const ty = Math.floor((player.y + player.height + 1) / tileSize);
+          SystematicAPI.trigger('onPlayerBounce', player, tx, ty, /*layer=*/1);
         }
 
         // Camera & Draw
@@ -1407,13 +1424,13 @@ const originalBuiltInCount = sprites.length;
 
         drawLevel();
         drawPlayer();
-        checkPlayerTileCollision(player);
       } else {
         moveCamera();
         drawLevel();
         drawGrid();
       }
 
+      SystematicAPI.trigger('onUpdate', player, keys);
       requestAnimationFrame(update);
     }
 
