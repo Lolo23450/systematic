@@ -1,20 +1,20 @@
-const DOUBLE_JUMP_DELAY = 250; // ms between jumps
+const DOUBLE_JUMP_DELAY = 250;
 const jumpPower = -10
 
-// 1️⃣ Reset jump count & record time on first jump
+// Reset jump count & record time on first jump
 SystematicAPI.on("onPlayerJump", (player) => {
   player._jumpCount      = 1;                    // used one jump
   player._lastJumpTime   = performance.now();    // record when it happened
 });
 
-// 2️⃣ Reset on landing
+// Reset on landing
 SystematicAPI.on("onPlayerTouchGround", (player) => {
   player._jumpCount      = 0;
   player._lastJumpTime   = 0;
   player._doubleJumpKeyDown = false;
 });
 
-// 3️⃣ Watch every frame for the double‐jump key, but enforce delay
+// Watch every frame for the double‐jump key, but enforce delay
 SystematicAPI.on("onUpdate", (player, keys) => {
   const now = performance.now();
   const canDoubleJump =

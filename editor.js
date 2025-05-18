@@ -618,6 +618,8 @@ const originalBuiltInCount = sprites.length;
     window.addEventListener("keydown", e => {
       // 1) mark it pressed for movement
       keys[e.key] = true;
+      SystematicAPI.trigger("onKeyDown", e.key, e);
+
 
       // 2) then your shortcuts
       if ((e.ctrlKey||e.metaKey) && e.key === 'z') {
@@ -627,7 +629,10 @@ const originalBuiltInCount = sprites.length;
         e.preventDefault(); redo();
       }
     });
-    window.addEventListener("keyup",   e => { keys[e.key] = false; });
+    window.addEventListener("keyup",   e => {;
+      keys[e.key] = false;
+      SystematicAPI.trigger("onKeyUp", e.key, e);
+    });
 
     function encodeLevels(levels) {
       const json = JSON.stringify(levels);
