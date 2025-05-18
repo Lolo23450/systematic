@@ -1376,10 +1376,14 @@ const originalBuiltInCount = sprites.length;
         }
 
         if (!touchingRight && player._touchingRightPrev) {
-          SystematicAPI.trigger('onPlayerStopTouchWallRight', player);
+          const tx = Math.floor((player.x + player.width/2) / tileSize);
+          const ty = Math.floor((player.y + player.height + 1) / tileSize);
+          SystematicAPI.trigger('onPlayerStopTouchWallRight', player, tx, ty, /*layer=*/1);
         }
         if (!touchingLeft && player._touchingLeftPrev) {
-          SystematicAPI.trigger('onPlayerStopTouchWallLeft', player);
+          const tx = Math.floor((player.x + player.width/2) / tileSize);
+          const ty = Math.floor((player.y + player.height + 1) / tileSize);
+          SystematicAPI.trigger('onPlayerStopTouchWallLeft', player, tx, ty, /*layer=*/1);
         }
 
         // Gravity + Move
