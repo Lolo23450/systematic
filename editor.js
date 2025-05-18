@@ -127,6 +127,8 @@ const palettes = {
   ],
 };
 
+const TEXT_TILE_ID = 31
+
 // remember how many built-in sprites there were
 const originalBuiltInCount = sprites.length;
 
@@ -193,9 +195,6 @@ const originalBuiltInCount = sprites.length;
     const jumpTiles      = -0.32;  // an instant -0.32 tiles/sec when you jump
     const moveTiles      = 0.15;   // move 0.15 tiles per frame horizontally
     const keys = {};
-
-    // --- SETUP UI ---
-    const TEXT_TILE_ID = 31
 
     // which tile IDs get a custom props panel, and which fields they have:
     const tilePropertySchemas = {
@@ -560,7 +559,11 @@ const originalBuiltInCount = sprites.length;
       buildAnimatedCache();
     });
 
-    window.addEventListener('keydown', e => {
+    window.addEventListener("keydown", e => {
+      // 1) mark it pressed for movement
+      keys[e.key] = true;
+
+      // 2) then your shortcuts
       if ((e.ctrlKey||e.metaKey) && e.key === 'z') {
         e.preventDefault(); undo();
       }
