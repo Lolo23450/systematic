@@ -1388,6 +1388,9 @@ const originalBuiltInCount = sprites.length;
           SystematicAPI.trigger('onPlayerStopTouchWallLeft', player, tx, ty, /*layer=*/1);
         }
 
+        player._touchingRightPrev = touchingRight;
+        player._touchingLeftPrev  = touchingLeft;
+
         // Gravity + Move
         player.vy += gravity;
         player.y  += player.vy;
