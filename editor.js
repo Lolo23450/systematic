@@ -14,6 +14,60 @@ const mapRows  = 30;
 let mode = "edit"; // "edit" or "play"
 let camX = 0, camY = 0;
 
+
+// MODDING API
+
+// CORE
+window.SystematicAPI = (function(){
+  const api = {};
+  api.tiles        = {};        // store definitions by string-ID
+  api.customIds    = [];        // keep track of non-built-in IDs
+
+  /**
+   * def.id         = unique number or string tile ID
+   * def.name       = display name for tooltips
+   * def.sprite     = 2D array of palette‐indices (same format as sprites[…].data)
+   * def.properties = arbitrary object
+   * def.onPlace?   = function(x,y,layer){…}
+   * def.onPlayerLand? = function(player,x,y,layer){…}
+   */
+  api.registerTile = function(def) {
+    if (def.id == null) throw new Error("Tile needs an id");
+    const sid = String(def.id);
+    if (api.tiles[sid]) console.warn("Overwriting tile", sid);
+    api.tiles[sid] = def;
+
+    // 1) inject into sprites[] for rendering caches
+    sprites[sid] = [{ data: def.sprite || [[-1]], name: def.name }];
+    // 2) track as “custom”
+    api.customIds.push(sid);
+    // 3) bake into caches immediately
+    buildTileCanvas(sid, 0, /*layer=*/0, "", tileCache);
+    buildTileCanvas(sid, 0, /*layer=*/1, "", tileCache);
+    // 4) rebuild brushes UI
+    createTileBrushes();
+    console.log("Registered custom tile:", sid, def.name);
+  };
+
+  api.getTileDef = function(id) {
+    return api.tiles[String(id)] || null;
+  };
+
+  return api;
+})();
+
+// HOOKS
+// COLLISION HOOK
+function checkPlayerTileCollision(player) {
+  const tx     = Math.floor((player.x + player.width / 2) / tileSize);
+  const ty     = Math.floor((player.y + player.height + 1) / tileSize);
+  const id     = levels[currentLevel][ty]?.[tx]?.[1];  // terrain layer
+  const def    = SystematicAPI.getTileDef(id);
+  if (def && typeof def.onPlayerLand === "function") {
+    def.onPlayerLand.call(def, player, tx, ty, /*layer=*/1);
+  }
+}
+
 const palettes = {
   "Forest": [
     "#1d1b2a", // shadow base (deep soil/dark tree root)
@@ -636,20 +690,18 @@ const originalBuiltInCount = sprites.length;
     const redoStack = [];
     const MAX_HISTORY = 100;  // cap to save memory
 
-    // tile brush
     function paintAt(e) {
       const x = Math.floor((e.offsetX + camX) / tileSize);
       const y = Math.floor((e.offsetY + camY) / tileSize);
       if (x<0||y<0||x>=mapCols||y>=mapRows) return;
-      const layer = currentLayer;
+      const layer   = currentLayer;
       const oldTile = level[y][x][layer];
       const newTile = currentTile;
-      if (oldTile === newTile) return;
+      if (oldTile===newTile) return;
 
-      // record action
-      undoStack.push({ x,y,layer, oldTile, newTile });
-      if (undoStack.length > MAX_HISTORY) undoStack.shift();
-      redoStack.length = 0;  // clear redo on new action
+      undoStack.push({ x,y,layer,oldTile,newTile });
+      if (undoStack.length>MAX_HISTORY) undoStack.shift();
+      redoStack.length=0;
 
       // apply
       level[y][x][layer] = newTile;
@@ -1355,7 +1407,7 @@ const originalBuiltInCount = sprites.length;
 
         drawLevel();
         drawPlayer();
-
+        checkPlayerTileCollision(player);
       } else {
         moveCamera();
         drawLevel();
@@ -1369,51 +1421,39 @@ const originalBuiltInCount = sprites.length;
     function createTileBrushes() {
       const container = document.getElementById("tileBrushes");
       container.innerHTML = "";
-
-      // 1) Use CSS Grid instead of flex
-      container.style.display = "grid";
-
-      // 2) Define exactly 11 columns (you had 9, +2 more)
-      //    Each slot is 64px for the canvas, plus 4px border, plus 4px total gap
+      container.style.display           = "grid";
       container.style.gridTemplateColumns = "repeat(11, 68px)";
-      container.style.gridAutoRows        = "68px";
-      container.style.gap                 = "4px";
+      container.style.gridAutoRows      = "68px";
+      container.style.gap               = "4px";
+      container.style.height            = "calc(100% - 40px)";
+      container.style.overflowY         = "auto";
+      container.style.padding           = "10px";
+      container.style.boxSizing         = "border-box";
 
-      // 3) Set scrolling & padding (same as before)
-      container.style.height     = "calc(100% - 40px)";
-      container.style.overflowY  = "auto";
-      container.style.padding    = "10px";
-      container.style.boxSizing  = "border-box";
-
-      // 1) Get all IDs for the current category
+      // 1) get built-in IDs for this category + search
       let brushCategories = makeBrushCategories();
       let idsToShow = brushCategories[currentCategory] || [];
-
-      // 2) If there’s a search query, further filter by name or ID
       if (tileSearchQuery) {
         idsToShow = idsToShow.filter(idx => {
           const spr = sprites[idx]?.[0];
-          const nameMatch = spr?.name?.toLowerCase().includes(tileSearchQuery);
-          const idMatch   = idx.toString().includes(tileSearchQuery);
-          return nameMatch || idMatch;
+          return String(idx).includes(tileSearchQuery)
+              || (spr?.name||"").toLowerCase().includes(tileSearchQuery);
         });
       }
+
+      // 3) render buttons/canvases as before
       idsToShow.forEach(idx => {
-        const spr = sprites[idx];
         const c = document.createElement("canvas");
         c.width = c.height = 64;
-        c.dataset.tile = idx;
+        c.dataset.tile    = idx;
         c.classList.add('brush');
-        // if this is the currently selected brush, mark it
         if (idx === currentTile) c.classList.add('selected');
-        c.addEventListener('click', () => {
+        c.onclick = () => {
           currentTile = idx;
-          document.querySelectorAll("#tileBrushes canvas").forEach(canv => {
-            canv.classList.remove("selected");
-          });
-          c.classList.add("selected");
-          // …and any other logic you need (e.g. updating a preview)
-        });
+          document.querySelectorAll("#tileBrushes .brush")
+                  .forEach(canv => canv.classList.remove("selected"));
+          c.classList.add('selected');
+        };
         c.onmouseover = () => {
           c.style.transform = "scale(1.1)";
           drawBrushHoverTooltips();
@@ -1421,26 +1461,26 @@ const originalBuiltInCount = sprites.length;
         c.onmouseout = () => {
           c.style.transform = "scale(1)";
         };
+        // draw existing sprite data
         const bctx = c.getContext("2d");
         bctx.fillStyle = palette[6];
         bctx.fillRect(0,0,64,64);
-        if (spr.length) {
-          const sprite = spr[0].data;
-          const pixelSize = 3, spriteSize = sprite.length * pixelSize;
-          const offset = (64 - spriteSize) / 2;
-          for (let row = 0; row < sprite.length; row++) {
-            for (let col = 0; col < sprite[row].length; col++) {
-              const ci = sprite[row][col];
-              if (ci >= 0) {
-                bctx.fillStyle = palette[ci] || "#000";
-                bctx.fillRect(
-                  offset + col * pixelSize,
-                  offset + row * pixelSize,
-                  pixelSize, pixelSize
-                );
-              }
-            }
-          }
+        const spr = sprites[idx]?.[0];
+        if (spr?.data) {
+          const pixelSize   = 3;
+          const spriteSize  = spr.data.length * pixelSize;
+          const offset      = (64 - spriteSize)/2;
+          spr.data.forEach((row,y) =>
+            row.forEach((ci,x) => {
+              if (ci<0) return;
+              bctx.fillStyle = palette[ci] || "#000";
+              bctx.fillRect(
+                offset + x*pixelSize,
+                offset + y*pixelSize,
+                pixelSize, pixelSize
+              );
+            })
+          );
         }
         container.appendChild(c);
       });

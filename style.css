@@ -16,11 +16,6 @@
     #tileBrushes canvas.selected {
       border-color: #ff0;  /* yellow */
     }
-
-    /* hover effect */
-    #tileBrushes canvas:hover {
-      transform: scale(1.1);
-    }
     
     /* Sidebar sliding */
     #tileProps {
