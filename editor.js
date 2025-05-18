@@ -1315,6 +1315,8 @@ const originalBuiltInCount = sprites.length;
       player.height   = N * pixelSize;
 
       if (mode === "play") {
+        let touchingLeft = false;
+        let touchingRight = false;
         player._touchingRightPrev = player._touchingRightPrev || false;
         player._touchingLeftPrev  = player._touchingLeftPrev  || false;
         // Horizontal
