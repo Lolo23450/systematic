@@ -109,16 +109,86 @@ A web-based **pixel platformer level editor** and playtester—fully in your bro
 
 ---
 
-## 🛠️ Extending the Editor
+## Modding Guide
 
-- **Add new tiles**:  
-  1. Add your sprite to the `sprites` array  
-  2. Include its ID in `makeBrushCategories()`  
-  3. Define any custom fields in `tilePropertySchemas`  
-  4. Extend `paintAt()` and `drawSingleTile()` as needed  
+### Overview
 
-- **Custom physics**: Extend `isSolid()`, `isOneWayTile()`, etc., in the `update()` loop.  
-- **UI tweaks**: All UI is plain HTML/CSS—feel free to restyle or reorganize.
+This game provides an API and a system of hooks that allow you to extend and customize gameplay behavior. Mods can respond to in-game events, modify player state, or add new mechanics without changing the core game code.
+
+### Hooks
+
+Hooks are functions that the game engine calls at specific points during gameplay. You can register your own functions to these hooks via the `SystematicAPI.on` method.
+
+Common hooks include:
+
+* **`onUpdate(player, keys)`**
+  Called every frame during the game update. Provides access to the current player object and the state of input keys.
+
+* **`onPlayerJump(player)`**
+  Called when the player performs a jump.
+
+* **`onPlayerTouchGround(player)`**
+  Called when the player lands on the ground.
+
+* **`onPlayerTouchWallRight(player, tileX, tileY, layer)`**
+  Called when the player touches a wall on the right.
+
+* **`onPlayerTouchWallLeft(player, tileX, tileY, layer)`**
+  Called when the player touches a wall on the left.
+
+* **`onPlayerBounce(player, tileX, tileY, layer)`**
+  Called when the player bounces on a special tile.
+
+### Player Object
+
+The player object includes properties such as:
+
+* `x`, `y`: Position coordinates.
+* `vx`, `vy`: Velocity components.
+* `width`, `height`: Size dimensions.
+* `onGround`: Boolean indicating whether the player is on the ground.
+* Custom properties can be added as needed for your mod.
+
+### Example: Adding Double Jump
+
+Below is a simplified example of adding double jump functionality using hooks:
+
+```js
+SystematicAPI.on("onPlayerJump", (player) => {
+  player._jumpCount = 1;
+});
+
+SystematicAPI.on("onPlayerTouchGround", (player) => {
+  player._jumpCount = 0;
+});
+
+SystematicAPI.on("onUpdate", (player, keys) => {
+  if (!player.onGround && player._jumpCount === 1 && (keys["w"] || keys["ArrowUp"])) {
+    player.vy = jumpPower;  // jumpPower should be defined in the game context
+    player._jumpCount++;
+  }
+});
+```
+
+### Triggering Custom Events
+
+You can also trigger your own events using:
+
+```js
+SystematicAPI.trigger('eventName', ...args);
+```
+
+For example, trigger a custom event when the player performs a double jump:
+
+```js
+SystematicAPI.trigger('onPlayerDoubleJump', player);
+```
+
+---
+
+This structure allows modders to add new gameplay mechanics, input handling, and interactions by registering functions to hooks and using the API to modify the player state or trigger events.
+
+If you need more details or examples, feel free to ask me!
 
 ---
 
