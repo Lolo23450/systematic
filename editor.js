@@ -136,14 +136,6 @@ window.SystematicAPI = (function(){
   api.tiles        = {};        // store definitions by string-ID
   api.customIds    = [];        // keep track of non-built-in IDs
 
-  /**
-   * def.id         = unique number or string tile ID
-   * def.name       = display name for tooltips
-   * def.sprite     = 2D array of palette‐indices (same format as sprites[…].data)
-   * def.properties = arbitrary object
-   * def.onPlace?   = function(x,y,layer){…}
-   * def.onPlayerLand? = function(player,x,y,layer){…}
-   */
   api.registerTile = function(def) {
     if (def.id == null) throw new Error("Tile needs an id");
     const sid = String(def.id);
