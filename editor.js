@@ -212,7 +212,106 @@ window.SystematicAPI = (function(){
 
   // Update any UI you have for palette selection!
   updatePaletteSelector(palsel);
-};
+  };
+  
+  // 0) storage for registered modals
+  const modals = {};
+
+  // 1) registerModal: store the config
+  api.registerModal = function(name, config) {
+    if (typeof name !== "string" || typeof config !== "object") {
+      throw new Error("registerModal(name: string, config: object)");
+    }
+    // config: { title, content, buttons: [ { label, onClick, className? } ] }
+    modals[name] = config;
+  };
+
+  // 2) showModal: build and display the modal
+  api.showModal = function(name) {
+    const config = modals[name];
+    if (!config) {
+      console.error("No modal registered under", name);
+      return;
+    }
+
+    // Create backdrop
+    const backdrop = document.createElement("div");
+    backdrop.className = "sysapi-modal-backdrop";
+    backdrop.dataset.modal = name;              // tag with name
+
+    // modal container
+    const box = document.createElement("div");
+    box.className = "sysapi-modal";
+
+    // title
+    const h1 = document.createElement("h2");
+    h1.textContent = config.title || name;
+    box.appendChild(h1);
+
+    // content
+    const body = document.createElement("div");
+    body.className = "sysapi-modal-content";
+    if (typeof config.content === "string") {
+      body.innerHTML = config.content;
+    } else if (config.content instanceof Node) {
+      body.appendChild(config.content);
+    } else if (typeof config.content === "function") {
+      body.appendChild(config.content());
+    }
+    box.appendChild(body);
+
+    // buttons
+    const footer = document.createElement("div");
+    footer.className = "sysapi-modal-footer";
+    (config.buttons || []).forEach(btnCfg => {
+      const btn = document.createElement("button");
+      btn.textContent = btnCfg.label;
+      if (btnCfg.className) btn.classList.add(btnCfg.className);
+      btn.onclick = () => {
+        try { btnCfg.onClick(); }
+        catch(err){ console.error(err); }
+        api.hideModal(name);                   // hide this modal
+      };
+      footer.appendChild(btn);
+    });
+    box.appendChild(footer);
+
+    backdrop.appendChild(box);
+    document.body.appendChild(backdrop);
+  };
+
+  // 3) hideModal: remove either the named modal or the top‐most one
+  api.hideModal = function(name) {
+    let selector;
+    if (typeof name === "string") {
+      selector = `.sysapi-modal-backdrop[data-modal="${name}"]`;
+    } else {
+      // no name = close the first/backmost modal
+      selector = ".sysapi-modal-backdrop";
+    }
+    const backdrop = document.querySelector(selector);
+    if (backdrop) backdrop.remove();
+  };
+
+  // 4) optional styling
+  const style = document.createElement("style");
+  style.textContent = `
+    .sysapi-modal-backdrop {
+      position:fixed; top:0; left:0; right:0; bottom:0;
+      background: rgba(0,0,0,0.5);
+      display:flex; align-items:center; justify-content:center;
+      z-index:1000;
+    }
+    .sysapi-modal {
+      background:#fff; border-radius:6px; padding:16px;
+      max-width:80vw; max-height:80vh; overflow:auto;
+      box-shadow:0 2px 10px rgba(0,0,0,0.3);
+    }
+    .sysapi-modal-content { margin:12px 0; }
+    .sysapi-modal-footer { text-align:right; }
+    .sysapi-modal-footer button { margin-left:8px; }
+  `;
+  document.head.appendChild(style);
 
   return api;
 })();
