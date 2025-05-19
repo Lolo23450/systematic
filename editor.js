@@ -313,6 +313,81 @@ window.SystematicAPI = (function(){
   `;
   document.head.appendChild(style);
 
+  // === Impoved Global Store ===
+  let tilePropertySchemas = {
+    23: [ // Bounce Tile
+      { key: "jumpStrength", label: "Jump Strength", type: "number", min: 0.1, step: 0.1, default: 1.0 }
+    ],
+    27: [ // One-Way Platform
+      { key: "allowDrop",    label: "Allow Drop (press S)", type: "checkbox", default: false }
+    ],
+    31: [
+      { key: "text", label: "Text", type: "text", default: "" }
+    ]
+  };
+
+  // === 1. FIELD-DEFINITION VALIDATOR ===
+  function validateFieldDef(field) {
+    const { key, label, type, default: def } = field;
+    if (typeof key !== 'string' || key.trim() === '') {
+      console.error(`Field key must be a non-empty string`, field);
+      return false;
+    }
+    if (typeof label !== 'string') {
+      console.error(`Field label must be a string`, field);
+      return false;
+    }
+    if (!['number','text','checkbox','select','color'].includes(type)) {
+      console.error(`Unsupported field type "${type}"`, field);
+      return false;
+    }
+    // default exists?
+    if (def === undefined) {
+      console.warn(`No default provided for "${key}", setting to null`);
+      field.default = null;
+    }
+    return true;
+  }
+
+  // === 2. REGISTER (OVERWRITE) WITH VALIDATION ===
+  api.registerTilePropertySchema = function(tileID, schemaArray) {
+    if (!Array.isArray(schemaArray)) {
+      console.warn(`Schema for tile ${tileID} must be an array.`);
+      return;
+    }
+    // Validate each field
+    const goodFields = schemaArray.filter(f => validateFieldDef(f));
+    if (goodFields.length !== schemaArray.length) {
+      console.warn(`Some invalid fields were dropped for tile ${tileID}.`);
+    }
+    if (tilePropertySchemas[tileID]) {
+      console.warn(`Overriding existing schema for tile ${tileID}`);
+    }
+    tilePropertySchemas[tileID] = goodFields;
+  };
+
+  // === 3. EXTEND (APPEND) INSTEAD OF OVERRIDE ===
+  api.extendTilePropertySchema = function(tileID, extraFields) {
+    if (!Array.isArray(extraFields)) {
+      console.warn(`extraFields for tile ${tileID} must be an array.`);
+      return;
+    }
+    const validExtras = extraFields.filter(f => validateFieldDef(f));
+    tilePropertySchemas[tileID] = (tilePropertySchemas[tileID] || []).concat(validExtras);
+  };
+
+  // === 4. ACCESSOR & REMOVER ===
+  api.getTilePropertySchema = function(tileID) {
+    return tilePropertySchemas[tileID] ? [...tilePropertySchemas[tileID]] : [];
+  };
+
+  api.removeTilePropertySchema = function(tileID) {
+    if (tilePropertySchemas[tileID]) {
+      delete tilePropertySchemas[tileID];
+      console.log(`Removed schema for tile ${tileID}`);
+    }
+  };
+
   return api;
 })();
 
@@ -390,19 +465,6 @@ const originalBuiltInCount = sprites.length;
     const jumpTiles      = -0.32;  // an instant -0.32 tiles/sec when you jump
     const moveTiles      = 0.15;   // move 0.15 tiles per frame horizontally
     const keys = {};
-
-    // which tile IDs get a custom props panel, and which fields they have:
-    const tilePropertySchemas = {
-      23: [ // Bounce Tile
-        { key: "jumpStrength", label: "Jump Strength", type: "number", min: 0.1, step: 0.1, default: 1.0 }
-      ],
-      27: [ // One-Way Platform
-        { key: "allowDrop",    label: "Allow Drop (press S)", type: "checkbox", default: false }
-      ],
-      [TEXT_TILE_ID]: [
-        { key: "text", label: "Text", type: "text", default: "" }
-      ]
-    };
 
     updatePaletteSelector(palsel);
 
@@ -508,17 +570,18 @@ const originalBuiltInCount = sprites.length;
     const btnApply        = document.getElementById("propApply");
     const btnClose        = document.getElementById("propClose");
 
-    // Open sidebar on right‐click of a schema’d tile
+    // === 1) CONTEXTMENU: OPEN THE PROPS SIDEBAR ===
     canvas.addEventListener("contextmenu", e => {
       e.preventDefault();
       const tx = Math.floor((e.offsetX + camX) / tileSize);
       const ty = Math.floor((e.offsetY + camY) / tileSize);
       if (tx < 0 || ty < 0 || tx >= mapCols || ty >= mapRows) return;
 
-      const layer  = currentLayer;
-      const id     = levels[currentLevel][ty][tx][layer];
-      const schema = tilePropertySchemas[id];
-      if (!schema) return;
+      const layer = currentLayer;
+      const id    = levels[currentLevel][ty][tx][layer];
+      // USE THE API ACCESSOR
+      const schema = SystematicAPI.getTilePropertySchema(id);
+      if (!schema.length) return;
 
       // remember for apply
       lastTileX = tx; lastTileY = ty; lastLayer = layer;
@@ -534,15 +597,16 @@ const originalBuiltInCount = sprites.length;
 
         // input
         const input = document.createElement("input");
-        input.type    = field.type === "checkbox" ? "checkbox" : field.type;
-        input.id      = `propField-${field.key}`;
-        input.name    = field.key;
+        input.type = field.type === "checkbox" ? "checkbox" : field.type;
+        input.id   = `propField-${field.key}`;
+        input.name = field.key;
+
         if (field.type === "checkbox") {
           input.checked = existing[field.key] ?? field.default;
         } else {
           if (field.min  != null) input.min  = field.min;
           if (field.step != null) input.step = field.step;
-          input.value   = existing[field.key] ?? field.default;
+          input.value = existing[field.key] ?? field.default;
         }
 
         // label
@@ -550,8 +614,7 @@ const originalBuiltInCount = sprites.length;
         label.htmlFor    = input.id;
         label.textContent = field.label + ": ";
 
-        wrapper.appendChild(label);
-        wrapper.appendChild(input);
+        wrapper.append(label, input);
         customProps.appendChild(wrapper);
       });
 
@@ -560,14 +623,15 @@ const originalBuiltInCount = sprites.length;
       canvasContainer.classList.add("shifted");
     });
 
-
-    // 2) Replace your btnApply.onclick with this version:
+    // === 2) APPLY BUTTON: SAVE & UNDO-STACK ===
     btnApply.onclick = () => {
-      const key    = `${currentLevel}-${lastTileX}-${lastTileY}-${lastLayer}`;
-      const id     = levels[currentLevel][lastTileY][lastTileX][lastLayer];
-      const schema = tilePropertySchemas[id];
-      const data   = {};
+      const key = `${currentLevel}-${lastTileX}-${lastTileY}-${lastLayer}`;
+      const id  = levels[currentLevel][lastTileY][lastTileX][lastLayer];
+      // API accessor again
+      const schema = api.getTilePropertySchema(id);
+      const newProps = {};
 
+      // read inputs
       schema.forEach(field => {
         const inp = document.getElementById(`propField-${field.key}`);
         let val;
@@ -575,22 +639,20 @@ const originalBuiltInCount = sprites.length;
           val = inp.checked;
         } else if (field.type === "number") {
           val = parseFloat(inp.value);
-        } else {
-          // for type === "text" (and any other), just take the string
+        } else { // text, select, color, etc.
           val = inp.value;
         }
-        data[field.key] = val;
+        newProps[field.key] = val;
       });
 
+      // get old props
+      const oldProps = { ...(tilePropsData[key] || {}) };
       // save back
-      tilePropsData[key] = data;
-
-      const oldProps = {...tilePropsData[key]}; 
       tilePropsData[key] = newProps;
 
       // record as a special action
       undoStack.push({ type:'prop', key, oldProps, newProps });
-      if (undoStack.length>MAX_HISTORY) undoStack.shift();
+      if (undoStack.length > MAX_HISTORY) undoStack.shift();
       redoStack.length = 0;
 
       // close sidebar
