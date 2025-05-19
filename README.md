@@ -124,6 +124,19 @@ Common hooks include:
 * **`onUpdate(player, keys)`**
   Called every frame during the game update. Provides access to the current player object and the state of input keys.
 
+* **`onPreInput(player, keys)`**
+  Fires before you even process movement input each frame. Perfect for mods that want to override or inject custom controls.
+
+* **`onPostInput(player, keys)`**
+  Fires after you player.vx & player.vy from input, but before physics. Great for mods that tweak velocities.
+  
+* **`onPostPhysicsCollision(player, keys)`**
+  Fires after the physics and collision are handled, but before special tile collisions, and before setting the final player position. Great for correcting or tweaking the player's        final position before any custom tile physics / collisions
+
+* **`onPostSpecialPhysicsCollision(player, keys)`**
+  Fires after the collision and special tile collision are handled, but before setting the final player position. Great for correcting or tweaking the player's final final position 
+  after custom tile physics / collisions
+  
 * **`onPlayerJump(player)`**
   Called when the player performs a jump, returns player attributes like x, y, vx, vy, height, width, etc
   
