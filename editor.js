@@ -626,19 +626,19 @@ const originalBuiltInCount = sprites.length;
       const rect = canvas.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-      api.trigger("onMouseDown", x, y, e.button);
+      SystematicAPI.trigger("onMouseDown", x, y, e.button);
     });
 
     canvas.addEventListener("mousemove", e => {
       if (isPainting) paintAt(e);
     });
 
-    window.addEventListener("mouseup", () => {
+    window.addEventListener("mouseup", e => {
       isPainting = false;
       const rect = canvas.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-      api.trigger("onMouseUp", x, y, e.button);
+      SystematicAPI.trigger("onMouseUp", x, y, e.button);
     });
     canvas.addEventListener("mouseleave", () => {
       isPainting = false;
