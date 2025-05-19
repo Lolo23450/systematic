@@ -183,6 +183,19 @@ window.SystematicAPI = (function(){
     });
   };
 
+  api.triggerCancelable = function(eventName, ...args) {
+    const fns = listeners[eventName] || [];
+    for (const fn of fns) {
+      try {
+        // if a listener explicitly returns false, we cancel
+        if (fn(...args) === false) return false;
+      } catch (err) {
+        console.error(`hook ${eventName} threw`, err);
+      }
+    }
+    return true;
+  };
+
   api.registerColorPalette = function(name, colorArray) {
   if (typeof name !== "string" || !Array.isArray(colorArray)) {
     throw new Error("registerColorPalette(name: string, colorArray: string[])");
@@ -1305,6 +1318,7 @@ const originalBuiltInCount = sprites.length;
     }
 
     function update() {
+      SystematicAPI.trigger("onPreInput", player, keys);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const gravity   = gravityTiles * tileSize;
       const jumpPower = jumpTiles  * tileSize;
@@ -1315,10 +1329,11 @@ const originalBuiltInCount = sprites.length;
       player.height   = N * pixelSize;
 
       if (mode === "play") {
-        let touchingLeft = false;
-        let touchingRight = false;
         player._touchingRightPrev = player._touchingRightPrev || false;
         player._touchingLeftPrev  = player._touchingLeftPrev  || false;
+
+        let touchingRight = false;
+        let touchingLeft  = false;
         // Horizontal
         if      (keys["a"] || keys["ArrowLeft"])  player.vx = -moveSpeed;
         else if (keys["d"] || keys["ArrowRight"]) player.vx =  moveSpeed;
@@ -1331,8 +1346,9 @@ const originalBuiltInCount = sprites.length;
           SystematicAPI.trigger('onPlayerJump', player);
         }
 
+        SystematicAPI.trigger("onPostInput", player, keys);
+
         player.x  += player.vx;
-        // Tentative next horizontal position
         const nextX = player.x + player.vx;
         const topY   = player.y;
         const bottomY = player.y + player.height - 1;
@@ -1342,33 +1358,48 @@ const originalBuiltInCount = sprites.length;
           if (player.vx > 0) {
             // Moving right: check right edge
             const rightEdge = nextX + player.width;
-            // check tiles along right edge from top to bottom
-            for (let y = topY; y <= bottomY; y += tileSize / 2) {
+            for (let y = topY; y <= bottomY; y += tileSize/2) {
               if (isSolid(rightEdge, y)) {
-                // Snap player to left side of blocking tile
                 const col = Math.floor(rightEdge / tileSize);
                 player.x = col * tileSize - player.width;
-                player.vx = 0;
                 const tx = Math.floor((player.x + player.width/2) / tileSize);
                 const ty = Math.floor((player.y + player.height + 1) / tileSize);
+                // use triggerCancelable instead of peeking at listeners
+                const keepVx = SystematicAPI.triggerCancelable(
+                  "prePlayerTouchWallRight",
+                  player, tx, ty, /*layer=*/1
+                );
+                if (!keepVx) {
+                  player.vx = 0;
+                }
+
+                // now fire the normal touch hook
+                SystematicAPI.trigger("onPlayerTouchWallRight", player, tx, ty, 1);
                 touchingRight = true;
-                SystematicAPI.trigger('onPlayerTouchWallRight', player, tx, ty, /*layer=*/1);
                 break;
               }
             }
           } else {
             // Moving left: check left edge
             const leftEdge = nextX;
-            for (let y = topY; y <= bottomY; y += tileSize / 2) {
+            for (let y = topY; y <= bottomY; y += tileSize/2) {
               if (isSolid(leftEdge, y)) {
-                // Snap player to right side of blocking tile
                 const col = Math.floor(leftEdge / tileSize);
                 player.x = (col + 1) * tileSize;
-                player.vx = 0;
                 const tx = Math.floor((player.x + player.width/2) / tileSize);
                 const ty = Math.floor((player.y + player.height + 1) / tileSize);
+                // use triggerCancelable for the left wall too
+                const keepVx = SystematicAPI.triggerCancelable(
+                  "prePlayerTouchWallLeft",
+                  player, tx, ty, /*layer=*/1
+                );
+                if (!keepVx) {
+                  player.vx = 0;
+                }
+
+                // then fire the normal touch hook
+                SystematicAPI.trigger("onPlayerTouchWallLeft", player, tx, ty, 1);
                 touchingLeft = true;
-                SystematicAPI.trigger('onPlayerTouchWallLeft', player, tx, ty, /*layer=*/1);
                 break;
               }
             }
@@ -1377,37 +1408,53 @@ const originalBuiltInCount = sprites.length;
           player.x = nextX;
         }
 
+        // now fire the “stop touching” events
         if (!touchingRight && player._touchingRightPrev) {
           const tx = Math.floor((player.x + player.width/2) / tileSize);
           const ty = Math.floor((player.y + player.height + 1) / tileSize);
-          SystematicAPI.trigger('onPlayerStopTouchWallRight', player, tx, ty, /*layer=*/1);
+          SystematicAPI.trigger("onPlayerStopTouchWallRight", player, tx, ty, 1);
         }
         if (!touchingLeft && player._touchingLeftPrev) {
           const tx = Math.floor((player.x + player.width/2) / tileSize);
           const ty = Math.floor((player.y + player.height + 1) / tileSize);
-          SystematicAPI.trigger('onPlayerStopTouchWallLeft', player, tx, ty, /*layer=*/1);
+          SystematicAPI.trigger("onPlayerStopTouchWallLeft", player, tx, ty, 1);
         }
 
+        // save for next frame
         player._touchingRightPrev = touchingRight;
         player._touchingLeftPrev  = touchingLeft;
 
-        // Gravity + Move
+        // Gravity
         player.vy += gravity;
         player.y  += player.vy;
 
         // Ceiling
         if (player.vy < 0) {
           const nextHeadY = player.y;
-          if (isSolid(player.x, nextHeadY) ||
-              isSolid(player.x + player.width, nextHeadY)) {
+          if (isSolid(player.x, nextHeadY) || isSolid(player.x + player.width, nextHeadY)) {
+            // determine which ceiling tile you’d be hitting
             const tileHY = Math.floor(nextHeadY / tileSize);
-            player.vy   = 0;
-            player.y    = (tileHY + 1) * tileSize;
-            const tx = Math.floor((player.x + player.width/2) / tileSize);
-            const ty = Math.floor((player.y + player.height + 1) / tileSize);
-            SystematicAPI.trigger('onPlayerTouchCeiling', player, tx, ty, /*layer=*/1);
+            const tx     = Math.floor((player.x + player.width/2) / tileSize);
+            const ty     = tileHY;
+
+            // — pre-hook: if any listener returns true, skip snapping
+            const keepGoing = SystematicAPI.triggerCancelable(
+              "prePlayerTouchCeiling",
+              player, tx, ty, /*layer=*/1
+            );
+
+            if (keepGoing) {
+              // NORMAL behavior
+              player.vy = 0;
+              player.y  = (tileHY + 1) * tileSize;
+              SystematicAPI.trigger("onPlayerTouchCeiling", player, tx, ty, /*layer=*/1);
+            }
+
+            // if keepGoing===false, we do nothing here: vy stays as-is
           }
         }
+
+        SystematicAPI.trigger("onPostPhysicsCollision", player, keys);
 
         // ── GROUND & ONE‐WAY PLATFORM LOGIC ─────────
         const feetY     = player.y + player.height;
@@ -1473,12 +1520,14 @@ const originalBuiltInCount = sprites.length;
           SystematicAPI.trigger('onPlayerBounce', player, tx, ty, /*layer=*/1);
         }
 
+        SystematicAPI.trigger("onPostSpecialPhysicsCollision", player, keys);
+
         // Camera & Draw
         camX = Math.max(0, Math.min(levels[0][0].length * tileSize - canvas.width,
                   player.x - canvas.width/2 + player.width/2));
         camY = Math.max(0, Math.min(mapRows * tileSize - canvas.height,
                   player.y - canvas.height/2 + player.height/2));
-
+                   
         drawLevel();
         drawPlayer();
       } else {
