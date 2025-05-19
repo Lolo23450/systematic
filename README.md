@@ -124,11 +124,27 @@ Common hooks include:
 * **`onUpdate(player, keys)`**
   Called every frame during the game update. Provides access to the current player object and the state of input keys.
 
+* **`onPreInput(player, keys)`**
+  Fires before you even process movement input each frame. Perfect for mods that want to override or inject custom controls.
+
+* **`onPostInput(player, keys)`**
+  Fires after you player.vx & player.vy from input, but before physics. Great for mods that tweak velocities.
+  
+* **`onPostPhysicsCollision(player, keys)`**
+  Fires after the physics and collision are handled, but before special tile collisions, and before setting the final player position. Great for correcting or tweaking the player's        final position before any custom tile physics / collisions
+
+* **`onPostSpecialPhysicsCollision(player, keys)`**
+  Fires after the collision and special tile collision are handled, but before setting the final player position. Great for correcting or tweaking the player's final final position 
+  after custom tile physics / collisions
+  
 * **`onPlayerJump(player)`**
   Called when the player performs a jump, returns player attributes like x, y, vx, vy, height, width, etc
   
 * **`onPlayerTouchGround(player)`**
   Called when the player lands on the ground, returns player attributes like x, y, vx, vy, height, width, etc
+
+* **`onPlayerTouchCeiling(player)`**
+  Called when the player touches the ceiling, returns player attributes like x, y, vx, vy, height, width, etc
 
 * **`onPlayerTouchWallRight(player, tileX, tileY, layer)`**
   Called when the player touches a wall on the right, returns player attributes like x, y, vx, vy, height, width, etc, and where the event happened (tx,ty,layer).
@@ -136,18 +152,24 @@ Common hooks include:
 * **`onPlayerTouchWallLeft(player, tileX, tileY, layer)`**
   Called when the player touches a wall on the left, returns player attributes like x, y, vx, vy, height, width, etc, and where the event happened (tx,ty,layer).
 
-* **`onPlayerStopTouchWallRight(player, tileX, tileY, layer)`**
-  Called when the player stops touching a wall on the right, returns player attributes like x, y, vx, vy, height, width, etc, and where the event happened (tx,ty,layer).
-
-* **`onPlayerStopTouchWallLeft(player, tileX, tileY, layer)`**
-  Called when the player stops touching a wall on the left, returns player attributes like x, y, vx, vy, height, width, etc, and where the event happened (tx,ty,layer).
-
 * **`onPlayerBounce(player, tileX, tileY, layer)`**
   Called when the player bounces on a spring, returns player attributes like x, y, vx, vy, height, width, etc, and where the event happened (tx,ty,layer).
 
+* **`prePlayerTouchWallRight(player, tileX, tileY, layer)`**  
+  Called right before the engine snaps the player to the right wall and zeros horizontal velocity. If any listener returns `true`, the default zeroing of `player.vx` is skipped, 
+  letting mods override behavior like wall climbing or jumping.
+
+* **`prePlayerTouchWallLeft(player, tileX, tileY, layer)`**  
+  Called right before the engine snaps the player to the left wall and zeros horizontal velocity. Returning `true` from any listener prevents the engine from resetting `player.vx`, 
+  enabling custom wall-touch behavior.
+
+* **`prePlayerTouchCeiling(player, tileX, tileY, layer)`**  
+  Called right before the engine snaps the player under the ceiling and zeros vertical velocity. Returning `false` from any listener prevents zeroing `player.vy` and position snapping, 
+  allowing continuous upward movement (like wall climbing).
+
+
 * **`onKeyDown(key)`**
   Called when a key is pressed, returns the key pressed.
-
 
 ### Player Object
 
