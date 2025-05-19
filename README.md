@@ -167,9 +167,16 @@ Common hooks include:
   Called right before the engine snaps the player under the ceiling and zeros vertical velocity. Returning `false` from any listener prevents zeroing `player.vy` and position snapping, 
   allowing continuous upward movement (like wall climbing).
 
-
 * **`onKeyDown(key)`**
   Called when a key is pressed, returns the key pressed.
+
+* **`onMouseDown(x, y, button)`**  
+  *Called when the user presses a mouse button. `x`, `y` are the coordinates relative to the canvas; `button` is the button index (0 = left, 1 = middle, 2 = right).*
+
+* **`onMouseUp(x, y, button)`**  
+  *Called when the user releases a mouse button. Same arguments as `onMouseDown`.*
+
+
 
 ### Player Object
 
