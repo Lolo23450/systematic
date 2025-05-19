@@ -253,29 +253,31 @@ SystematicAPI.trigger('onPlayerDoubleJump', player);
 
 ---
 
+````markdown
 ### Register Functions
 
-There are two register functions:
+The core API provides three register methods:
+
 ```js
-SystematicAPI.registerTile({
-```
-```js
-SystematicAPI.registerColorPalette({
-```
+SystematicAPI.registerTile({...});
+SystematicAPI.registerColorPalette(name, colors);
+SystematicAPI.registerModal(name, config);
+````
+
+---
 
 ### Register Tile
 
-Register Tile is used to define new tiles that you can use in the editor, they must have these 5 attributes:
+Use `registerTile` to define new tiles for the editor. The configuration object must include:
 
-* `id`: Tile id used by the editor.
-* `name`: Name of the tile used by the editor
-* `category`: The name of the category in which the tile will be added to, if a category doesnt exist, it will create a new one
-* `sprite`: Sprite of the tile, same array format used by the editor
-* `properties`: Custom properties of the tile
- 
-Example Attributes for Register Tile:
+* `id` (number|string): unique tile ID
+* `name` (string): display name in the editor
+* `category` (string): category name to group this tile (creates it if missing)
+* `sprite` (2D array of palette indices): the tile’s pixel data
+* `properties` (object): any custom data your mod needs
+
 ```js
-// 1. define the sprite
+// 1. define the sprite data
 const heavySpringSprite = [
   [7,7,7,7,7,7,7,7,7,7],
   [7,7,7,7,7,7,7,7,7,7],
@@ -289,7 +291,7 @@ const heavySpringSprite = [
   [7,0,1,1,1,1,1,1,0,7],
 ];
 
-// 2. register the tile with its attributes
+// 2. register it
 SystematicAPI.registerTile({
   id: 99,
   name: "Heavy Spring",
@@ -298,42 +300,90 @@ SystematicAPI.registerTile({
   properties: { bounce: 20 }
 });
 ```
+
 ---
-### Add hooks to registered tiles
-To add hooks to register tiles, you can attach the hooks into the definition like this:
-```js
-// 3. add hooks
-SystematicAPI.on("onPlayerTouchGround", (player, tx, ty, layer) => {
-  const def = SystematicAPI.getTileDef(levels[currentLevel][ty]?.[tx]?.[layer]); // leave this like it is most of the time
-  if (def?.id === 99) { // your tile id
-    player.vy = -def.properties.bounce; // use the registered tile's properties
-    animateTileOnce(layer, tx, ty, [25,24,23,26,26,99], 32); // animate the tile
-  }
-});
-```
 
 ### Register Color Palette
-Register Color Palette is used to define new plattes that you can use in the editor, they must follor this format:
+
+Use `registerColorPalette` to add named color schemes:
+
 ```js
 SystematicAPI.registerColorPalette("Mossy Grove", [
-  "#3b4a2f", // deep moss shadow (dark forest floor)
-  "#66794b", // moss base (soft leafy green)
-  "#8ca16c", // fresh moss highlight (brighter green)
-  "#b6c396", // sunlit moss (light leafy patches)
-  "#a48a6d", // damp soil (earthy brown)
-  "#d6c9b1", // fallen leaves (soft beige)
-  "#c2d8b0", // light misty sky (pale green-gray)
+  "#3b4a2f", // deep moss shadow
+  "#66794b", // moss base
+  "#8ca16c", // fresh highlight
+  "#b6c396", // sunlit patches
+  "#a48a6d", // damp soil
+  "#d6c9b1", // fallen leaves
+  "#c2d8b0", // misty sky
   "rgba(0,0,0,0)" // transparent
 ]);
 ```
 
-### Built in Functions
-There are some built in functions to help with development. There arent that many, so i will include the most useful one:
+---
 
-* **`animateTileOnce(layer, x, y, frames, fps)`**
-  Places different tiles in a sequence to simulate an animation, can also be used to place tiles
+### Register Modal
 
-Usage Example: animateTileOnce(1, tx, ty, [25,24,23,26,26,23], 32);
+Use `registerModal` to define custom dialogs. The `config` object accepts:
+
+* `title` (string)
+* `content` (string | Node | function returning a Node)
+* `buttons` (array of `{ label, onClick, className? }`)
+
+```js
+SystematicAPI.registerModal("confirmReset", {
+  title: "Reset Level?",
+  content: "Are you sure you want to restart?",
+  buttons: [
+    { label: "Cancel", onClick: () => {} },
+    { label: "Reset", onClick: () => resetLevel() }
+  ]
+});
+
+// Then show it:
+SystematicAPI.showModal("confirmReset");
+```
+
+---
+
+### Built-in Utility Functions
+
+#### `animateTileOnce(layer, x, y, frames, fps)`
+
+Animate a tile sequence at `(x,y,layer)`.
+
+```js
+animateTileOnce(1, tx, ty, [25,24,23,26,26,23], 32);
+```
+
+#### `drawSprite(data, x, y)`
+
+Render a sprite’s 2D array `data` at pixel position `(x,y)` on the game canvas:
+
+```js
+function drawSprite(data, x, y) {
+  const spriteDim     = data.length;
+  const pixelSize     = Math.floor(tileSize / spriteDim) || 1;
+  const spritePixelSz = spriteDim * pixelSize;
+  const offset        = Math.floor((tileSize - spritePixelSz) / 2);
+
+  for (let row = 0; row < spriteDim; row++) {
+    for (let col = 0; col < spriteDim; col++) {
+      const ci = data[row][col];
+      if (ci < 0) continue;
+      ctx.fillStyle = palette[ci] || "#000";
+      ctx.fillRect(
+        x + offset + col * pixelSize,
+        y + offset + row * pixelSize,
+        pixelSize,
+        pixelSize
+      );
+    }
+  }
+}
+```
+
+Use this inside custom UI canvases or mods to draw any registered sprite.
 
 ---
 
