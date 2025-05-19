@@ -623,6 +623,10 @@ const originalBuiltInCount = sprites.length;
         isPainting = true;
         paintAt(e);
       }
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      api.trigger("onMouseDown", x, y, e.button);
     });
 
     canvas.addEventListener("mousemove", e => {
@@ -631,6 +635,10 @@ const originalBuiltInCount = sprites.length;
 
     window.addEventListener("mouseup", () => {
       isPainting = false;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      api.trigger("onMouseUp", x, y, e.button);
     });
     canvas.addEventListener("mouseleave", () => {
       isPainting = false;
