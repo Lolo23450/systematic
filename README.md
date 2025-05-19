@@ -136,12 +136,6 @@ Common hooks include:
 * **`onPlayerTouchWallLeft(player, tileX, tileY, layer)`**
   Called when the player touches a wall on the left, returns player attributes like x, y, vx, vy, height, width, etc, and where the event happened (tx,ty,layer).
 
-* **`onPlayerStopTouchWallRight(player, tileX, tileY, layer)`**
-  Called when the player stops touching a wall on the right, returns player attributes like x, y, vx, vy, height, width, etc, and where the event happened (tx,ty,layer).
-
-* **`onPlayerStopTouchWallLeft(player, tileX, tileY, layer)`**
-  Called when the player stops touching a wall on the left, returns player attributes like x, y, vx, vy, height, width, etc, and where the event happened (tx,ty,layer).
-
 * **`onPlayerBounce(player, tileX, tileY, layer)`**
   Called when the player bounces on a spring, returns player attributes like x, y, vx, vy, height, width, etc, and where the event happened (tx,ty,layer).
 
