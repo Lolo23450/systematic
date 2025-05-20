@@ -1,5 +1,9 @@
 # Systematic  
+
 https://lolo23450.github.io/systematic/  
+
+https://github.com/Lolo23450/systematic/blob/main/README.md#modding-guide
+
 A web-based **pixel platformer level editor** and playtester—fully in your browser. Create, edit, sprite, and play your own 2D platformer levels without writing a single line of engine code!
 
 ---
@@ -147,13 +151,13 @@ Common hooks include:
   Called when the player touches the ceiling, returns player attributes like x, y, vx, vy, height, width, etc
 
 * **`onPlayerTouchWallRight(player, tileX, tileY, layer)`**
-  Called when the player touches a wall on the right, returns player attributes like x, y, vx, vy, height, width, etc, and where the event happened (tx,ty,layer).
+  Called when the player touches a wall on the right, returns player attributes like x, y, vx, vy, height, width, etc, and where that event happened (tx,ty,layer).
 
 * **`onPlayerTouchWallLeft(player, tileX, tileY, layer)`**
-  Called when the player touches a wall on the left, returns player attributes like x, y, vx, vy, height, width, etc, and where the event happened (tx,ty,layer).
+  Called when the player touches a wall on the left, returns player attributes like x, y, vx, vy, height, width, etc, and where that event happened (tx,ty,layer).
 
 * **`onPlayerBounce(player, tileX, tileY, layer)`**
-  Called when the player bounces on a spring, returns player attributes like x, y, vx, vy, height, width, etc, and where the event happened (tx,ty,layer).
+  Called when the player bounces on a spring, returns player attributes like x, y, vx, vy, height, width, etc, and where that event happened (tx,ty,layer).
 
 * **`prePlayerTouchWallRight(player, tileX, tileY, layer)`**  
   Called right before the engine snaps the player to the right wall and zeros horizontal velocity. If any listener returns `true`, the default zeroing of `player.vx` is skipped, 
