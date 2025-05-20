@@ -144,10 +144,11 @@
 
     .modal-backdrop {
       position: fixed;
-      top:0; left:0; right:0; bottom:0;
+      top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0,0,0,0.8);
       z-index: 1000;
     }
+
     .modal {
       max-width: 1000px;
       width: 90%;
@@ -157,24 +158,54 @@
       color: #ddd;
       padding: 1.5rem;
       border-radius: 10px;
+      font-family: sans-serif;
     }
+    
     .modal pre {
       background: #2e2e2e;
-      padding: 0.5rem;
+      padding: 1rem;
+      margin: 1em 0;
+      border-radius: 4px;
+
+      /* Fix font and spacing */
+      font-family: Consolas, Menlo, "Courier New", monospace;
+      font-size: 14px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
       overflow-x: auto;
     }
-    .modal code {
-      background: #2e2e2e;
-      padding: 0.25rem 0.5rem;
-      border-radius: 3px;
+
+    .modal pre code {
+      display: block;
+      background: none;
+      padding: 0;
+      border-radius: 0;
+      font-size: inherit;
+      font-family: inherit;
+      line-height: inherit;
     }
+
+    .modal code {
+      font-family: Consolas, Menlo, "Courier New", monospace;
+      font-size: 14px;
+      background: rgba(255,255,255,0.05);
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.4;
+    }
+
     .modal h1, .modal h2, .modal h3 {
       border-bottom: 1px solid #444;
       padding-bottom: 0.25em;
     }
+
     .modal img {
       max-width: 100%;
     }
+
     .modal a {
       color: #6cf;
     }
