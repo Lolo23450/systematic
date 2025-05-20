@@ -19,6 +19,7 @@
       <button onclick="uploadCurrentLevel()">Upload Level</button>
       <button onclick="loadLevelFromFirebase()">Load Shared Level</button>
       <button id="browseShared">Browse Shared Levels</button>
+      <button id="viewDocsBtn">Features & Docs</button>
     </div>
   </div>
   <div id="paletteWrapper" style="width:824px; margin:10px auto; background:#111; overflow:hidden;">
@@ -85,7 +86,14 @@
     </footer>
   </div>
 </div>
+<div id="docsModal" class="modal-backdrop" style="display:none; align-items:center; justify-content:center;">
+  <div class="modal" style="background:#222; color:#eee; width:80%; max-height:80%; overflow:auto; padding:1em; border-radius:4px;">
+    <button id="closeDocs" style="float:right">✕</button>
+    <div id="docsContent">Loading…</div>
+  </div>
+</div>
 </body>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/lz-string/libs/lz-string.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>

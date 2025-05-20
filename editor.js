@@ -761,6 +761,31 @@ const originalBuiltInCount = sprites.length;
       sharedModalBackdrop.style.display = 'none';
     });
 
+    const viewDocsBtn = document.getElementById('viewDocsBtn');
+    const docsModal   = document.getElementById('docsModal');
+    const docsContent = document.getElementById('docsContent');
+    const closeDocs   = document.getElementById('closeDocs');
+
+    // raw URL for your README
+    const README_URL = 'https://raw.githubusercontent.com/lolo23450/systematic/main/README.md';
+
+    viewDocsBtn.addEventListener('click', async () => {
+      docsModal.style.display = 'flex';
+      docsContent.innerHTML  = 'Loading…';
+      try {
+        const res  = await fetch(README_URL);
+        const md   = await res.text();
+        // render markdown to HTML
+        docsContent.innerHTML = marked.parse(md);
+      } catch (err) {
+        docsContent.innerHTML = `<p style="color:salmon">Failed to load docs:<br>${err}</p>`;
+      }
+    });
+
+    closeDocs.addEventListener('click', () => {
+      docsModal.style.display = 'none';
+    });
+
     let isPainting = false;
     let currentLayer = 1;  // 0 = background, 1 = terrain, 2 = objects
 
