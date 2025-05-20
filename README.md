@@ -1,5 +1,9 @@
 # Systematic  
+
 https://lolo23450.github.io/systematic/  
+
+https://github.com/Lolo23450/systematic/blob/main/README.md#modding-guide
+
 A web-based **pixel platformer level editor** and playtester—fully in your browser. Create, edit, sprite, and play your own 2D platformer levels without writing a single line of engine code!
 
 ---
