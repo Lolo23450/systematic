@@ -380,6 +380,90 @@ window.SystematicAPI = (function(){
     }
   };
 
+  // storage for emitter *definitions*
+  api._emitters = {};
+  // storage for *active* particles
+  api._particles = [];
+
+  /**
+   * registerParticleEmitter(name, config)
+   *
+   * config = {
+   *   max:        number of particles per emission,
+   *   lifetime:   [minMs, maxMs],
+   *   velocity:   { x: [min,max], y: [min,max] },
+   *   gravity:    number (added to vy each frame),
+   *   color:      string or [array of strings],
+   *   size:       [minPx, maxPx]
+   * }
+   */
+  api.registerParticleEmitter = function(name, config) {
+    if (!name || typeof config !== 'object') {
+      throw new Error("registerParticleEmitter requires (name, config)");
+    }
+    api._emitters[name] = config;
+  };
+
+  /**
+   * emitParticles(name, x, y)
+   * spawns up to config.max particles at world‐coords x,y
+   */
+  api.emitParticles = function(name, x, y) {
+    const cfg = api._emitters[name];
+    if (!cfg) {
+      console.warn("No emitter:", name);
+      return;
+    }
+    for (let i = 0; i < (cfg.max||10); i++) {
+      // pick random lifetime
+      const life = randRange(cfg.lifetime[0], cfg.lifetime[1]);
+      // initial velocity
+      const vx   = randRange(cfg.velocity.x[0], cfg.velocity.x[1]);
+      const vy   = randRange(cfg.velocity.y[0], cfg.velocity.y[1]);
+      // color
+      const col  = Array.isArray(cfg.color)
+        ? cfg.color[Math.floor(Math.random()*cfg.color.length)]
+        : cfg.color;
+      // size
+      const sz   = randRange(cfg.size[0], cfg.size[1]);
+      api._particles.push({
+        x, y, vx, vy, life, age: 0,
+        gravity: cfg.gravity||0,
+        color: col, size: sz
+      });
+    }
+  };
+
+  // call this each frame in your main update loop, *before* drawLevel()
+  api._updateParticles = function(dt) {
+    const out = [];
+    for (const p of api._particles) {
+      p.age += dt;
+      if (p.age < p.life) {
+        p.vy += p.gravity * dt;
+        p.x  += p.vx * dt;
+        p.y  += p.vy * dt;
+        out.push(p);
+      }
+    }
+    api._particles = out;
+  };
+
+  // call this each frame *after* drawLevel()
+  api._drawParticles = function(ctx, camX, camY, tileSize) {
+    for (const p of api._particles) {
+      ctx.fillStyle = p.color;
+      // convert world to screen:
+      const sx = p.x - camX;
+      const sy = p.y - camY;
+      ctx.beginPath();
+      ctx.arc(sx, sy, p.size, 0, 2*Math.PI);
+      ctx.fill();
+    }
+  };
+
+  function randRange(a,b){ return a + Math.random()*(b-a); }
+
   return api;
 })();
 
@@ -589,16 +673,15 @@ const originalBuiltInCount = sprites.length;
 
         // input
         const input = document.createElement("input");
-        input.type = field.type === "checkbox" ? "checkbox" : field.type;
-        input.id   = `propField-${field.key}`;
-        input.name = field.key;
-
+        input.type    = field.type === "checkbox" ? "checkbox" : field.type;
+        input.id      = `propField-${field.key}`;
+        input.name    = field.key;
         if (field.type === "checkbox") {
           input.checked = existing[field.key] ?? field.default;
         } else {
           if (field.min  != null) input.min  = field.min;
           if (field.step != null) input.step = field.step;
-          input.value = existing[field.key] ?? field.default;
+          input.value   = existing[field.key] ?? field.default;
         }
 
         // label
@@ -606,51 +689,49 @@ const originalBuiltInCount = sprites.length;
         label.htmlFor    = input.id;
         label.textContent = field.label + ": ";
 
-        wrapper.append(label, input);
+        wrapper.appendChild(label);
+        wrapper.appendChild(input);
         customProps.appendChild(wrapper);
       });
 
-      // slide in
-      tileProps.classList.add("open");
-      canvasContainer.classList.add("shifted");
-    });
-
-    // === 2) APPLY BUTTON: SAVE & UNDO-STACK ===
-    btnApply.onclick = () => {
-      const key = `${currentLevel}-${lastTileX}-${lastTileY}-${lastLayer}`;
-      const id  = levels[currentLevel][lastTileY][lastTileX][lastLayer];
-      // API accessor again
-      const schema = api.getTilePropertySchema(id);
-      const newProps = {};
-
-      // read inputs
-      schema.forEach(field => {
-        const inp = document.getElementById(`propField-${field.key}`);
-        let val;
-        if (field.type === "checkbox") {
-          val = inp.checked;
-        } else if (field.type === "number") {
-          val = parseFloat(inp.value);
-        } else { // text, select, color, etc.
-          val = inp.value;
-        }
-        newProps[field.key] = val;
+        // slide in
+        tileProps.classList.add("open");
+        canvasContainer.classList.add("shifted");
       });
 
-      // get old props
-      const oldProps = { ...(tilePropsData[key] || {}) };
-      // save back
-      tilePropsData[key] = newProps;
+      btnApply.onclick = () => {
+        const key    = `${currentLevel}-${lastTileX}-${lastTileY}-${lastLayer}`;
+        const id     = levels[currentLevel][lastTileY][lastTileX][lastLayer];
+        const schema = SystematicAPI.getTilePropertySchema(id);
+        const data   = {};
 
-      // record as a special action
-      undoStack.push({ type:'prop', key, oldProps, newProps });
-      if (undoStack.length > MAX_HISTORY) undoStack.shift();
-      redoStack.length = 0;
+        schema.forEach(field => {
+          const inp = document.getElementById(`propField-${field.key}`);
+          let val;
+          if (field.type === "checkbox") {
+            val = inp.checked;
+          } else if (field.type === "number") {
+            val = parseFloat(inp.value);
+          } else {
+            // for type === "text" (and any other), just take the string
+            val = inp.value;
+          }
+          data[field.key] = val;
+        });
 
-      // close sidebar
-      tileProps.classList.remove("open");
-      canvasContainer.classList.remove("shifted");
-    };
+        // save back
+        const oldProps = {...tilePropsData[key]}; 
+        tilePropsData[key] = data;
+
+        // record as a special action
+        undoStack.push({ type:'prop', key, oldProps, data });
+        if (undoStack.length>MAX_HISTORY) undoStack.shift();
+        redoStack.length = 0;
+          
+        // close sidebar
+        tileProps.classList.remove("open");
+        canvasContainer.classList.remove("shifted");
+      };
 
     // Close: just slide out
     btnClose.onclick = () => {
@@ -966,7 +1047,7 @@ const originalBuiltInCount = sprites.length;
       undoStack.push(action);
 
       if (action.type === 'prop') {
-        tilePropsData[action.key] = action.newProps;
+        tilePropsData[action.key] = action.data;
         redrawTilePropsUIIfOpen();
       } else {
         const {x,y,layer, newTile} = action;
@@ -1503,9 +1584,13 @@ const originalBuiltInCount = sprites.length;
       }
     }
 
-    function update() {
+    let lastTime = performance.now();
+    function update(now = performance.now()) {
+      const dt = (now - lastTime) / 1000;  // seconds
+      lastTime = now;
       SystematicAPI.trigger("onPreInput", player, keys);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      SystematicAPI._updateParticles(dt);
       const gravity   = gravityTiles * tileSize;
       const jumpPower = jumpTiles  * tileSize;
       const moveSpeed = moveTiles  * tileSize;
@@ -1721,7 +1806,7 @@ const originalBuiltInCount = sprites.length;
         drawLevel();
         drawGrid();
       }
-
+      SystematicAPI._drawParticles(ctx, camX, camY, tileSize);
       SystematicAPI.trigger('onUpdate', player, keys);
       requestAnimationFrame(update);
     }
