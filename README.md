@@ -257,7 +257,6 @@ SystematicAPI.trigger('onPlayerDoubleJump', player);
 
 ---
 
-````markdown
 ### Register Functions
 
 The core API provides three register methods:
@@ -349,6 +348,66 @@ SystematicAPI.showModal("confirmReset");
 ```
 
 ---
+
+### Register Particle
+
+Use `SystematicAPI.spawnParticle` to create visual particles in the world. Each particle has its own position, velocity, color, size, and lifetime.
+
+This system is great for effects like **rain**, **dust**, **explosions**, or **custom tile emissions**.
+
+```js
+SystematicAPI.spawnParticle({
+  x: 100,         // starting x position (pixels)
+  y: 150,         // starting y position (pixels)
+  vx: 0,          // horizontal velocity (pixels per frame)
+  vy: 1,          // vertical velocity
+  life: 60,       // how many frames it lives
+  color: "#6cf",  // fill color (any valid CSS color)
+  size: 2         // radius in pixels
+});
+```
+
+You can call this from hooks (e.g. `onPlayerLand`, `onUpdate`, etc.) to create effects when things happen.
+
+---
+
+### Particle Object Options
+
+The full particle config supports the following keys:
+
+| Key     | Type      | Description                           |
+| ------- | --------- | ------------------------------------- |
+| `x`     | `number`  | Starting X position in **pixels**     |
+| `y`     | `number`  | Starting Y position in **pixels**     |
+| `vx`    | `number`  | Horizontal speed                      |
+| `vy`    | `number`  | Vertical speed                        |
+| `life`  | `number`  | How many frames it lasts              |
+| `color` | `string`  | Any valid CSS color (hex, rgba, etc)  |
+| `size`  | `number`  | Radius in pixels                      |
+| `fade`  | `boolean` | Optional – if `true`, fades over time |
+
+Example with fade:
+
+```js
+SystematicAPI.spawnParticle({
+  x: player.x + 4,
+  y: player.y + player.height,
+  vx: 0,
+  vy: 1,
+  size: 2,
+  color: "#fff",
+  life: 30,
+  fade: true
+});
+```
+
+---
+
+### Particle Tips
+
+* **Performance:** Keep particle counts low (under 200 active at once).
+* **Color Themes:** Use palette-based colors like `palette[1]` for consistent mod visuals.
+* **Mod Interactions:** Spawn particles inside hook listeners (like `onUpdate`, `onPlayerLand`, etc.)
 
 ### Built-in Utility Functions
 
