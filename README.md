@@ -349,65 +349,81 @@ SystematicAPI.showModal("confirmReset");
 
 ---
 
-### Register Particle
-
-Use `SystematicAPI.spawnParticle` to create visual particles in the world. Each particle has its own position, velocity, color, size, and lifetime.
-
-This system is great for effects like **rain**, **dust**, **explosions**, or **custom tile emissions**.
-
-```js
-SystematicAPI.spawnParticle({
-  x: 100,         // starting x position (pixels)
-  y: 150,         // starting y position (pixels)
-  vx: 0,          // horizontal velocity (pixels per frame)
-  vy: 1,          // vertical velocity
-  life: 60,       // how many frames it lives
-  color: "#6cf",  // fill color (any valid CSS color)
-  size: 2         // radius in pixels
-});
-```
-
-You can call this from hooks (e.g. `onPlayerLand`, `onUpdate`, etc.) to create effects when things happen.
+Ahh! Thanks for the correction, Lolo 🐾✨ Here's the updated **README section** that properly documents the **particle emitter system** (not the raw particle spawner):
 
 ---
 
-### Particle Object Options
+### Register Particle Emitters
 
-The full particle config supports the following keys:
-
-| Key     | Type      | Description                           |
-| ------- | --------- | ------------------------------------- |
-| `x`     | `number`  | Starting X position in **pixels**     |
-| `y`     | `number`  | Starting Y position in **pixels**     |
-| `vx`    | `number`  | Horizontal speed                      |
-| `vy`    | `number`  | Vertical speed                        |
-| `life`  | `number`  | How many frames it lasts              |
-| `color` | `string`  | Any valid CSS color (hex, rgba, etc)  |
-| `size`  | `number`  | Radius in pixels                      |
-| `fade`  | `boolean` | Optional – if `true`, fades over time |
-
-Example with fade:
+Use `SystematicAPI.registerParticleEmitter` to define reusable named particle emitters (like **dust clouds**, **sparkles**, **explosions**, etc).
 
 ```js
-SystematicAPI.spawnParticle({
-  x: player.x + 4,
-  y: player.y + player.height,
-  vx: 0,
-  vy: 1,
-  size: 2,
-  color: "#fff",
-  life: 30,
-  fade: true
+SystematicAPI.registerParticleEmitter("dustPoof", {
+  max:      20,                // max particles per emission
+  lifetime: [0.3, 0.6],        // seconds (min and max)
+  velocity: {
+    x: [-30, 30],              // horizontal px/sec
+    y: [-60, 0]                // vertical px/sec
+  },
+  gravity:  200,               // px/sec² (pulls particles down)
+  color:    ["#888", "#aaa"],  // colors (random pick)
+  size:     [1, 3]             // particle radius in px
+});
+```
+
+This registers a particle style called `"dustPoof"` that you can trigger from anywhere in the game.
+
+---
+
+### Emit Particles
+
+To emit a burst of particles at a location, use:
+
+```js
+SystematicAPI.emitParticles("dustPoof", x, y);
+```
+
+Example: emit when the player lands
+
+```js
+SystematicAPI.on("onPlayerTouchGround", (player) => {
+  const px = player.x + player.width / 2;
+  const py = player.y + player.height;
+  SystematicAPI.emitParticles("dustPoof", px, py);
+});
+```
+
+This creates a satisfying dust effect under the player on landing! 🌫️
+
+---
+
+### Emitter Config Options
+
+| Key        | Type                               | Description                                 |
+| ---------- | ---------------------------------- | ------------------------------------------- |
+| `max`      | `number`                           | Max particles per emission burst            |
+| `lifetime` | `[min, max]`                       | How long each particle lasts (in seconds)   |
+| `velocity` | `{ x: [min, max], y: [min, max] }` | Initial particle speed ranges               |
+| `gravity`  | `number`                           | Constant downward acceleration (px/sec²)    |
+| `color`    | `string` or `string[]`             | Fill color(s) – can be a single hex or list |
+| `size`     | `[min, max]`                       | Radius of each particle (in pixels)         |
+
+---
+
+### Example: Spark Emitter
+
+```js
+SystematicAPI.registerParticleEmitter("spark", {
+  max: 12,
+  lifetime: [0.1, 0.3],
+  velocity: { x: [-100, 100], y: [-100, 100] },
+  gravity: 0,
+  color: ["#ff0", "#f80", "#fc0"],
+  size: [1, 2]
 });
 ```
 
 ---
-
-### Particle Tips
-
-* **Performance:** Keep particle counts low (under 200 active at once).
-* **Color Themes:** Use palette-based colors like `palette[1]` for consistent mod visuals.
-* **Mod Interactions:** Spawn particles inside hook listeners (like `onUpdate`, `onPlayerLand`, etc.)
 
 ### Built-in Utility Functions
 
