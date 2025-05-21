@@ -145,7 +145,7 @@ Common hooks include:
   Called when the player performs a jump, returns player attributes like x, y, vx, vy, height, width, etc
   
 * **`onPlayerTouchGround(player)`**
-  Called when the player lands on the ground, returns player attributes like x, y, vx, vy, height, width, etc
+  Called when the player stands on the ground, returns player attributes like x, y, vx, vy, height, width, etc
 
 * **`onPlayerTouchCeiling(player)`**
   Called when the player touches the ceiling, returns player attributes like x, y, vx, vy, height, width, etc
