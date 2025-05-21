@@ -429,7 +429,7 @@ SystematicAPI.registerParticleEmitter("spark", {
 
 #### `animateTileOnce(layer, x, y, frames, fps)`
 
-Animate a tile sequence at `(x,y,layer)`.
+Animate a tile sequence at `(layer, x, y)` at a framerate.
 
 ```js
 animateTileOnce(1, tx, ty, [25,24,23,26,26,23], 32);
