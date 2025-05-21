@@ -1241,10 +1241,11 @@ const originalBuiltInCount = sprites.length;
         for (let x = minCol; x < maxCol; x++) {
           for (let layer = 0; layer < layerCount; layer++) {
             let id = levels[currentLevel][y][x][layer];
-            // animated-spike substitution
+
+            // SPIKE-TILE HANDLING
             if (id === SPIKE_BASE_ID) id = spikeFrames[frameIndex];
 
-            // 1) TEXT-TILE HANDLING
+            // TEXT-TILE HANDLING
             if (id === TEXT_TILE_ID) {
               // build the props-lookup key
               const propKey = `${currentLevel}-${x}-${y}-${layer}`;
