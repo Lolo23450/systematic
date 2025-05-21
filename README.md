@@ -391,9 +391,6 @@ Use this inside custom UI canvases or mods to draw any registered sprite.
 
 ---
 
-This structure allows modders to add new gameplay mechanics, input handling, and interactions by registering functions to hooks and using the API to modify the player state or trigger events.
-
----
 
 ## License & Attribution
 
