@@ -463,7 +463,6 @@ window.SystematicAPI = (function(){
   };
 
   function randRange(a,b){ return a + Math.random()*(b-a); }
-
   return api;
 })();
 
