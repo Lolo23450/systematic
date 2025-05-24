@@ -1,5 +1,5 @@
 // ── CONFIG ────────────────────────────────────────────────
-const CLIMB_SPEED = 1.5; // pixels per frame upward while climbing
+const CLIMB_SPEED = 1.75; // pixels per frame upward while climbing
 const JUMP_VY = -10;
 
 // ── STATE TRACKING ─────────────────────────────────────────
@@ -34,7 +34,9 @@ SystematicAPI.on("onUpdate", (player, keys) => {
 });
 
 // ── PRE-HOOK TO CANCEL CEILING COLLISION WHILE CLIMBING ────
-SystematicAPI.on("prePlayerTouchCeiling", (player) => {
-  // Prevent the engine from zeroing vy when climbing up (holding W)
-  return !(keys["w"] || keys["ArrowUp"]);
+SystematicAPI.on("prePlayerTouchCeiling", () => {
+  if (player._isOnWall == true ) {
+    // Prevent the engine from zeroing vy when climbing up (holding W)
+    return !(keys["w"] || keys["ArrowUp"]);
+  }
 });
