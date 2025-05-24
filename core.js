@@ -738,7 +738,6 @@ const originalBuiltInCount = sprites.length;
       canvasContainer.classList.remove("shifted");
     };
 
-    // ◾️ After `const db = firebase.database();`
     const browseBtn   = document.getElementById('browseShared');
     const sharedModalBackdrop = document.getElementById('sharedModalBackdrop');
     const sharedList  = document.getElementById('sharedList');
@@ -2161,7 +2160,6 @@ const originalBuiltInCount = sprites.length;
         console.warn("Could not parse saved levels:", e);
       }
     }
-    refreshLevelLabel();
 
     // Try to load from hash
     if (location.hash.length > 1) {
