@@ -481,7 +481,7 @@ const originalBuiltInCount = sprites.length;
       "Cobblestone":[0,7,8,9,10,11,12,13,14],
       "Wood":       [0,21,22],
       "Ancient Stones":[5,6,15,16,17,18,19,20,32,33,34],
-      "Other":      [0,23,27,28,31,36],
+      "Other":      [0,23,27,28,31,36,39],
       "Painted":    painted
     };
 
@@ -1054,7 +1054,7 @@ const originalBuiltInCount = sprites.length;
     }
 
     const SPIKE_BASE_ID = 28;
-    const spikeFrames   = [28, 29, 30, 29, 29,];
+    const spikeFrames   = [28, 29, 30, 29, 29];
     const spikeHold     = 6;      // how many frames each anim step lasts
 
     let globalTick     = 0;       // increments every drawLevel call
