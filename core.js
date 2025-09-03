@@ -132,11 +132,14 @@ window.palettes = {
 
 // CORE
 window.SystematicAPI = (function(){
+  // --- Internal State ---
   const api = {};
   api.tiles        = {};        // store definitions by string-ID
   api.customIds    = [];        // keep track of non-built-in IDs
 
+  // --- Tile Registration ---
   api.registerTile = function(def) {
+    if (!def || typeof def !== "object") throw new Error("Tile definition must be an object");
     if (def.id == null) throw new Error("Tile needs an id");
     const sid = String(def.id);
     if (api.tiles[sid]) console.warn("Overwriting tile", sid);
@@ -145,7 +148,7 @@ window.SystematicAPI = (function(){
     // 1) inject into sprites[] for rendering caches
     sprites[sid] = [{ data: def.sprite || [[-1]], name: def.name }];
     // 2) track as “custom”
-    api.customIds.push(sid);
+    if (!api.customIds.includes(sid)) api.customIds.push(sid);
     // 3) bake into caches immediately
     buildTileCanvas(sid, 0, /*layer=*/0, "", tileCache);
     buildTileCanvas(sid, 0, /*layer=*/1, "", tileCache);
@@ -155,17 +158,28 @@ window.SystematicAPI = (function(){
     updateCategorySelector();
     createTileBrushes();
     console.log("Registered custom tile:", sid, def.name);
-    };
+  };
 
   api.getTileDef = function(id) {
     return api.tiles[String(id)] || null;
   };
 
+  // --- Event System ---
   const listeners = {};
 
   api.on = (eventName, fn) => {
+    if (typeof fn !== "function") throw new Error("Listener must be a function");
     if (!listeners[eventName]) listeners[eventName] = [];
     listeners[eventName].push(fn);
+    // Return unsubscribe function
+    return () => {
+      listeners[eventName] = listeners[eventName].filter(f => f !== fn);
+    };
+  };
+
+  api.off = (eventName, fn) => {
+    if (!listeners[eventName]) return;
+    listeners[eventName] = listeners[eventName].filter(f => f !== fn);
   };
 
   api.trigger = (eventName, ...args) => {
@@ -188,37 +202,30 @@ window.SystematicAPI = (function(){
     return true;
   };
 
+  // --- Palette Registration ---
   api.registerColorPalette = function(name, colorArray) {
-  if (typeof name !== "string" || !Array.isArray(colorArray)) {
-    throw new Error("registerColorPalette(name: string, colorArray: string[])");
-  }
-  // Optional: validate each entry is a CSS color string
-  colorArray.forEach((c, i) => {
-    if (typeof c !== "string") {
-      console.warn(`Palette "${name}" index ${i} is not a string:`, c);
+    if (typeof name !== "string" || !Array.isArray(colorArray)) {
+      throw new Error("registerColorPalette(name: string, colorArray: string[])");
     }
-  });
-
-  // Store into the global palettes object
-  window.palettes[name] = colorArray;
-
-  // Update any UI you have for palette selection!
-  updatePaletteSelector(palsel);
+    colorArray.forEach((c, i) => {
+      if (typeof c !== "string") {
+        console.warn(`Palette "${name}" index ${i} is not a string:`, c);
+      }
+    });
+    window.palettes[name] = colorArray;
+    updatePaletteSelector(palsel);
   };
-  
-  // 0) storage for registered modals
+
+  // --- Modal System ---
   const modals = {};
 
-  // 1) registerModal: store the config
   api.registerModal = function(name, config) {
     if (typeof name !== "string" || typeof config !== "object") {
       throw new Error("registerModal(name: string, config: object)");
     }
-    // config: { title, content, buttons: [ { label, onClick, className? } ] }
     modals[name] = config;
   };
 
-  // 2) showModal: build and display the modal
   api.showModal = function(name) {
     const config = modals[name];
     if (!config) {
@@ -272,7 +279,6 @@ window.SystematicAPI = (function(){
     document.body.appendChild(backdrop);
   };
 
-  // 3) hideModal: remove either the named modal or the top‐most one
   api.hideModal = function(name) {
     let selector;
     if (typeof name === "string") {
@@ -358,7 +364,6 @@ window.SystematicAPI = (function(){
     tilePropertySchemas[tileID] = goodFields;
   };
 
-  // === 3. EXTEND (APPEND) INSTEAD OF OVERRIDE ===
   api.extendTilePropertySchema = function(tileID, extraFields) {
     if (!Array.isArray(extraFields)) {
       console.warn(`extraFields for tile ${tileID} must be an array.`);
@@ -368,7 +373,6 @@ window.SystematicAPI = (function(){
     tilePropertySchemas[tileID] = (tilePropertySchemas[tileID] || []).concat(validExtras);
   };
 
-  // === 4. ACCESSOR & REMOVER ===
   api.getTilePropertySchema = function(tileID) {
     return tilePropertySchemas[tileID] ? [...tilePropertySchemas[tileID]] : [];
   };
@@ -380,9 +384,8 @@ window.SystematicAPI = (function(){
     }
   };
 
-  // storage for emitter *definitions*
+  // --- Particle System ---
   api._emitters = {};
-  // storage for *active* particles
   api._particles = [];
 
   /**
@@ -415,16 +418,12 @@ window.SystematicAPI = (function(){
       return;
     }
     for (let i = 0; i < (cfg.max||10); i++) {
-      // pick random lifetime
       const life = randRange(cfg.lifetime[0], cfg.lifetime[1]);
-      // initial velocity
       const vx   = randRange(cfg.velocity.x[0], cfg.velocity.x[1]);
       const vy   = randRange(cfg.velocity.y[0], cfg.velocity.y[1]);
-      // color
       const col  = Array.isArray(cfg.color)
         ? cfg.color[Math.floor(Math.random()*cfg.color.length)]
         : cfg.color;
-      // size
       const sz   = randRange(cfg.size[0], cfg.size[1]);
       api._particles.push({
         x, y, vx, vy, life, age: 0,
@@ -434,7 +433,6 @@ window.SystematicAPI = (function(){
     }
   };
 
-  // call this each frame in your main update loop, *before* drawLevel()
   api._updateParticles = function(dt) {
     const out = [];
     for (const p of api._particles) {
@@ -449,11 +447,9 @@ window.SystematicAPI = (function(){
     api._particles = out;
   };
 
-  // call this each frame *after* drawLevel()
   api._drawParticles = function(ctx, camX, camY, tileSize) {
     for (const p of api._particles) {
       ctx.fillStyle = p.color;
-      // convert world to screen:
       const sx = p.x - camX;
       const sy = p.y - camY;
       ctx.beginPath();
@@ -462,7 +458,117 @@ window.SystematicAPI = (function(){
     }
   };
 
+  // --- Tile/Level Utilities ---
+  api.getTileAt = function(x, y, layer = 1) {
+    if (
+      typeof x !== "number" || typeof y !== "number" ||
+      x < 0 || y < 0 || x >= mapCols || y >= mapRows
+    ) return null;
+    return levels[currentLevel][y][x][layer];
+  };
+
+  api.setTileAt = function(x, y, layer, id) {
+    if (
+      typeof x !== "number" || typeof y !== "number" ||
+      x < 0 || y < 0 || x >= mapCols || y >= mapRows
+    ) return false;
+    levels[currentLevel][y][x][layer] = id;
+    return true;
+  };
+
+  api.fillRect = function(x, y, w, h, layer, id) {
+    for (let dy = 0; dy < h; dy++) {
+      for (let dx = 0; dx < w; dx++) {
+        api.setTileAt(x + dx, y + dy, layer, id);
+      }
+    }
+  };
+
+  api.findTiles = function(id, layer = 1) {
+    const found = [];
+    for (let y = 0; y < mapRows; y++) {
+      for (let x = 0; x < mapCols; x++) {
+        if (levels[currentLevel][y][x][layer] === id) {
+          found.push({ x, y });
+        }
+      }
+    }
+    return found;
+  };
+
+  api.getPlayerPosition = function() {
+    return { x: player.x, y: player.y };
+  };
+
+  api.setPlayerPosition = function(x, y) {
+    player.x = x;
+    player.y = y;
+  };
+
+  api.getCurrentLevelIndex = function() {
+    return currentLevel;
+  };
+
+  api.setCurrentLevel = function(index) {
+    if (index >= 0 && index < levels.length) {
+      currentLevel = index;
+      level = levels[currentLevel];
+      return true;
+    }
+    return false;
+  };
+
+  /**
+   * getTileProperties(x, y, layer)
+   * Returns the custom properties object for a tile, if any.
+   */
+  api.getTileProperties = function(x, y, layer = 1) {
+    const key = `${currentLevel}-${x}-${y}-${layer}`;
+    return tilePropsData[key] || {};
+  };
+
+  api.setTileProperties = function(x, y, layer, props) {
+    const key = `${currentLevel}-${x}-${y}-${layer}`;
+    tilePropsData[key] = { ...props };
+  };
+
+  api.forEachTile = function(callback) {
+    for (let layer = 0; layer < layerCount; layer++) {
+      for (let y = 0; y < mapRows; y++) {
+        for (let x = 0; x < mapCols; x++) {
+          callback(x, y, layer, levels[currentLevel][y][x][layer]);
+        }
+      }
+    }
+  };
+
+  api.reloadLevel = function() {
+    loadAllLevelsFromStorage();
+  };
+
+  api.exportLevelAsJSON = function() {
+    return JSON.stringify(levels[currentLevel]);
+  };
+
+  api.importLevelFromJSON = function(json) {
+    try {
+      const arr = JSON.parse(json);
+      if (isValidLevelFormat(arr)) {
+        levels[currentLevel] = arr;
+        level = arr;
+        refreshLevelLabel();
+        return true;
+      }
+    } catch {}
+    return false;
+  };
+
+  // --- Utility ---
   function randRange(a,b){ return a + Math.random()*(b-a); }
+
+  // --- Expose listeners for debugging ---
+  api._listeners = listeners;
+
   return api;
 })();
 
@@ -536,9 +642,9 @@ const originalBuiltInCount = sprites.length;
       ],
       spriteDim: 8
     };
-    const gravityTiles   = 0.02;   // add 0.02 tiles of downward velocity per frame
-    const jumpTiles      = -0.32;  // an instant -0.32 tiles/sec when you jump
-    const moveTiles      = 0.15;   // move 0.15 tiles per frame horizontally
+    const gravityTiles   = 0.007;   // add 0.007 tiles of downward velocity per frame
+    const jumpTiles      = -0.20;  // an instant -0.22 tiles/sec when you jump
+    const moveTiles      = 0.1;   // move 0.1 tiles per frame horizontally
     const keys = {};
 
     updatePaletteSelector(palsel);
@@ -1585,8 +1691,11 @@ const originalBuiltInCount = sprites.length;
 
     let lastTime = performance.now();
     function update(now = performance.now()) {
-      const dt = (now - lastTime) / 1000;  // seconds
+      let dt = (now - lastTime) / 1000;  // seconds
       lastTime = now;
+      // Cap dt to avoid running too fast or too slow
+      dt = Math.min(dt, 1/60); // Cap to max 33ms per frame (30 FPS logic)
+
       SystematicAPI.trigger("onPreInput", player, keys);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       SystematicAPI._updateParticles(dt);
@@ -2137,6 +2246,7 @@ const originalBuiltInCount = sprites.length;
         const importedBuckets = importedArray
           .filter(obj => obj.name && Array.isArray(obj.data))
           .map(obj => [{ name: obj.name, data: obj.data }]);
+
 
         // Replace or append
         importedBuckets.forEach(newBucket => {

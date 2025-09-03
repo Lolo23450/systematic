@@ -48,6 +48,18 @@ A web-based **pixel platformer level editor** and playtester—fully in your bro
   - One-way platforms: toggle “allow drop” (press S)  
   - Extendable schema for new tile types  
 
+- **Particle System**  
+  - Register named particle emitters  
+  - Emit particles with custom color, gravity, velocity, and size  
+  - Built-in helpers for dust, sparks, and more
+
+- **Advanced Modding API**  
+  - Register/unregister event hooks with unsubscribe support  
+  - Register custom tiles, palettes, modals, and tile property schemas  
+  - Utility helpers for tile/level/player manipulation  
+  - Particle system and modal helpers  
+  - Full event system with error handling and debugging
+
 - **Open-source & Attribution**  
   - Licensed under MIT—free to use, modify, share with credit  
 
@@ -180,17 +192,104 @@ Common hooks include:
 * **`onMouseUp(x, y, button)`**  
   *Called when the user releases a mouse button. Same arguments as `onMouseDown`.*
 
+---
 
+### API Helper Functions
 
-### Player Object
+The API now includes a wide range of helper functions for modding and scripting:
 
-The player object includes properties such as:
+#### Tile & Level Utilities
 
-* `x`, `y`: Position coordinates.
-* `vx`, `vy`: Velocity components.
-* `width`, `height`: Size dimensions.
-* `onGround`: Boolean indicating whether the player is on the ground.
-* Custom properties can be added as needed for your mod.
+- **`SystematicAPI.getTileAt(x, y, layer)`**  
+  Get the tile ID at a given position and layer.
+
+- **`SystematicAPI.setTileAt(x, y, layer, id)`**  
+  Set the tile ID at a given position and layer.
+
+- **`SystematicAPI.fillRect(x, y, w, h, layer, id)`**  
+  Fill a rectangle of tiles with a given ID.
+
+- **`SystematicAPI.findTiles(id, layer)`**  
+  Find all tiles with a given ID on a layer.
+
+- **`SystematicAPI.getPlayerPosition()`**  
+  Get the current player position.
+
+- **`SystematicAPI.setPlayerPosition(x, y)`**  
+  Set the player position.
+
+- **`SystematicAPI.getCurrentLevelIndex()`**  
+  Get the current level index.
+
+- **`SystematicAPI.setCurrentLevel(index)`**  
+  Switch to a different level by index.
+
+- **`SystematicAPI.getTileProperties(x, y, layer)`**  
+  Get custom properties for a tile.
+
+- **`SystematicAPI.setTileProperties(x, y, layer, props)`**  
+  Set custom properties for a tile.
+
+- **`SystematicAPI.forEachTile(callback)`**  
+  Iterate over every tile in the current level.
+
+- **`SystematicAPI.reloadLevel()`**  
+  Reload the current level from storage.
+
+- **`SystematicAPI.exportLevelAsJSON()`**  
+  Export the current level as JSON.
+
+- **`SystematicAPI.importLevelFromJSON(json)`**  
+  Import a level from JSON.
+
+#### Tile Property Schemas
+
+- **`SystematicAPI.registerTilePropertySchema(tileID, schemaArray)`**  
+  Register a property schema for a tile.
+
+- **`SystematicAPI.extendTilePropertySchema(tileID, extraFields)`**  
+  Extend a tile's property schema.
+
+- **`SystematicAPI.getTilePropertySchema(tileID)`**  
+  Get a tile's property schema.
+
+- **`SystematicAPI.removeTilePropertySchema(tileID)`**  
+  Remove a tile's property schema.
+
+#### Particle System
+
+- **`SystematicAPI.registerParticleEmitter(name, config)`**  
+  Register a named particle emitter.
+
+- **`SystematicAPI.emitParticles(name, x, y)`**  
+  Emit a burst of particles at a location.
+
+#### Modal System
+
+- **`SystematicAPI.registerModal(name, config)`**  
+  Register a custom modal dialog.
+
+- **`SystematicAPI.showModal(name)`**  
+  Show a registered modal.
+
+- **`SystematicAPI.hideModal(name)`**  
+  Hide a modal.
+
+#### Event System
+
+- **`SystematicAPI.on(eventName, fn)`**  
+  Register an event listener. Returns an unsubscribe function.
+
+- **`SystematicAPI.off(eventName, fn)`**  
+  Remove an event listener.
+
+- **`SystematicAPI.trigger(eventName, ...args)`**  
+  Trigger an event.
+
+- **`SystematicAPI.triggerCancelable(eventName, ...args)`**  
+  Trigger an event, cancelable if any listener returns `false`.
+
+---
 
 ### Example: Adding Double Jump
 
@@ -241,31 +340,19 @@ SystematicAPI.on("onUpdate", (player, keys) => {
 });
 ```
 
-### Triggering Custom Events
-
-You can also trigger your own events using:
-
-```js
-SystematicAPI.trigger('eventName', ...args);
-```
-
-For example, trigger a custom event when the player performs a double jump:
-
-```js
-SystematicAPI.trigger('onPlayerDoubleJump', player);
-```
-
 ---
 
 ### Register Functions
 
-The core API provides three register methods:
+The core API provides several register methods:
 
 ```js
 SystematicAPI.registerTile({...});
 SystematicAPI.registerColorPalette(name, colors);
 SystematicAPI.registerModal(name, config);
-````
+SystematicAPI.registerTilePropertySchema(tileID, schemaArray);
+SystematicAPI.registerParticleEmitter(name, config);
+```
 
 ---
 
@@ -349,7 +436,15 @@ SystematicAPI.showModal("confirmReset");
 
 ---
 
-Ahh! Thanks for the correction, Lolo 🐾✨ Here's the updated **README section** that properly documents the **particle emitter system** (not the raw particle spawner):
+### Register Tile Property Schemas
+
+Use `registerTilePropertySchema` to define custom property schemas for tiles, enabling rich per-tile data and editor UI.
+
+```js
+SystematicAPI.registerTilePropertySchema(99, [
+  { key: "bounce", label: "Bounce Power", type: "number", min: 1, max: 100, step: 1, default: 20 }
+]);
+```
 
 ---
 
@@ -465,7 +560,6 @@ function drawSprite(data, x, y) {
 Use this inside custom UI canvases or mods to draw any registered sprite.
 
 ---
-
 
 ## License & Attribution
 
