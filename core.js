@@ -1441,18 +1441,35 @@ const originalBuiltInCount = sprites.length;
       }
     }
 
+    // Camera smoothing parameters
+    let camTargetX = 0, camTargetY = 0;
+    const CAMERA_LERP = 0.12; // Lower = more gentle, 0.1–0.2 is good
+
     function moveCamera() {
-      if (keys["ArrowLeft"] || keys["a"]) camX -= 10;
-      if (keys["ArrowRight"] || keys["d"]) camX += 10;
-      if (keys["ArrowUp"] || keys["w"]) camY -= 10;
-      if (keys["ArrowDown"] || keys["s"]) camY += 10;
+      if (mode === "play") {
+        // Target: center player
+        camTargetX = Math.max(0, Math.min(levels[0][0].length * tileSize - canvas.width,
+          player.x - canvas.width/2 + player.width/2));
+        camTargetY = Math.max(0, Math.min(mapRows * tileSize - canvas.height,
+          player.y - canvas.height/2 + player.height/2));
 
-      // Snap after movement
-      [camX, camY] = snapCamera(camX, camY);
+        // Smoothly interpolate camX/camY toward camTargetX/camTargetY
+        camX += (camTargetX - camX) * CAMERA_LERP * 0.5;
+        camY += (camTargetY - camY) * CAMERA_LERP * 0.25;
+      } else {
+        // Manual camera movement in edit mode
+        if (keys["ArrowLeft"] || keys["a"]) camX -= 10;
+        if (keys["ArrowRight"] || keys["d"]) camX += 10;
+        if (keys["ArrowUp"] || keys["w"]) camY -= 10;
+        if (keys["ArrowDown"] || keys["s"]) camY += 10;
 
-      // Clamp camera
-      camX = Math.max(0, Math.min(camX, mapCols * tileSize - canvas.width));
-      camY = Math.max(0, Math.min(camY, mapRows * tileSize - canvas.height));
+        // Snap after movement
+        [camX, camY] = snapCamera(camX, camY);
+
+        // Clamp camera
+        camX = Math.max(0, Math.min(camX, mapCols * tileSize - canvas.width));
+        camY = Math.max(0, Math.min(camY, mapRows * tileSize - canvas.height));
+      }
     }
 
     function snapCamera(x, y) {
@@ -1902,11 +1919,7 @@ const originalBuiltInCount = sprites.length;
         SystematicAPI.trigger("onPostSpecialPhysicsCollision", player, keys);
 
         // Camera & Draw
-        camX = Math.max(0, Math.min(levels[0][0].length * tileSize - canvas.width,
-                  player.x - canvas.width/2 + player.width/2));
-        camY = Math.max(0, Math.min(mapRows * tileSize - canvas.height,
-                  player.y - canvas.height/2 + player.height/2));
-                   
+        moveCamera();    
         drawLevel();
         drawPlayer();
       } else {
