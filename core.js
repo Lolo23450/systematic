@@ -56,14 +56,14 @@ window.palettes = {
     "#b0e0ff", // pale icy sky
     "rgba(0,0,0,0)"
   ],
-  "Tropical": [
+    "Tropical": [
     "#2f1b0c", // wet soil
     "#4e3b24", // palm trunk
     "#2e8b57", // lush green
     "#8ed487", // leaf highlight
     "#ffe066", // sand
-    "#ffd39f", // sunlit beach
-    "#5ec6e8", // bright tropical sky
+    "#ffb347", // sunlit beach
+    "#3ec3d3", // bright tropical sky (turquoise)
     "rgba(0,0,0,0)"
   ],
   "Swamp": [
