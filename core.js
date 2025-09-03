@@ -2020,37 +2020,54 @@ const originalBuiltInCount = sprites.length;
     cancelB.addEventListener('click', () => {
       modal.style.display = 'none';
     });
+
     saveBtn.addEventListener('click', () => {
       const nm = nameInp.value.trim();
       if (!nm) return alert('Please give your sprite a name.');
 
-      // 1) Add the sprite
-      sprites.push([ { name: nm, data: editData } ]);
-      createTileBrushes();
+      // 1) Find the next available tile ID
+      const existingIds = Object.keys(sprites).map(k => parseInt(k)).filter(n => !isNaN(n));
+      const nextId = Math.max(...existingIds, 39) + 1; // Start after built-in tiles
 
-      // 2) Build a JS-snippet string
+      // 2) Add the sprite to the sprites array (for compatibility)
+      sprites[nextId] = [{ name: nm, data: editData.map(row => [...row]) }]; // deep copy
+
+      // 3) Register it as a proper tile using the API
+      SystematicAPI.registerTile({
+        id: nextId,
+        name: nm,
+        category: "Custom", // or "Painted" to match existing category
+        sprite: editData.map(row => [...row]), // deep copy the data
+        properties: {} // no special properties by default
+      });
+
+      console.log(`Registered new sprite "${nm}" with ID ${nextId}`);
+
+      // 4) Build a JS-snippet string (keep existing download functionality)
       let code = '// Auto-generated sprite definitions\n';
       code += 'const sprites = [\n';
 
-      sprites.forEach((bucket, idx) => {
-        bucket.forEach(sprite => {
-          // header for this sprite
+      // Only export the actual sprite data, not the registration
+      Object.entries(sprites).forEach(([idx, bucket]) => {
+        if (bucket && bucket[0]) {
+          const sprite = bucket[0];
           code += `  {\n`;
+          code += `    id: ${idx},\n`;
           code += `    name: "${sprite.name}",\n`;
           code += `    data: [\n`;
-          // each row as "[n,n,n,…],"
+          // each row as "[n,n,n,...],"
           const rowLines = sprite.data
             .map(row => `      [${row.join(',')}],`)
             .join('\n');
           code += rowLines + '\n';
           code += `    ]\n`;
           code += `  },\n`;
-        });
+        }
       });
 
       code += '];\n';
 
-      // 3) Trigger download of a .js file
+      // 5) Trigger download of a .js file
       const blob = new Blob([code], { type: 'application/json' });
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
@@ -2061,8 +2078,13 @@ const originalBuiltInCount = sprites.length;
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      // 4) Close
+      // 6) Close modal
       modal.style.display = 'none';
+      
+      // 7) Refresh the brush UI to show the new tile
+      createTileBrushes();
+      
+      alert(`Sprite "${nm}" created and ready to use!`);
     });
 
     // extend your existing paletteSelector handler:
