@@ -1,141 +1,205 @@
+// --- CONFIGURATION ---
+const CONFIG = {
+  INITIAL_TILE_SIZE: 30,
+  SPRITE_DIM: 10,
+  BASE_PIXEL_SIZE: 3,
+  MIN_TILE: 30,
+  MAX_TILE: 60,
+  MAP_COLS: 60,
+  MAP_ROWS: 30,
+  CAMERA_LERP: 0.12,
+  GRAVITY_TILES: 0.007,
+  JUMP_TILES: -0.20,
+  MOVE_TILES: 0.1,
+  MAX_HISTORY: 100,
+  ANIM_FPS: 10,
+  SPIKE_HOLD: 6,
+  SAVED_KEY: "pixelPlatformerLevels",
+  ENABLE_LIGHTING: true, // Toggle for the new lighting engine
+  LIGHT_SCALE: 0.5, // 0.5 = Half resolution (Much faster), 1.0 = Full resolution
+  AMBIENT_LIGHT: 0.3 // 0 = pitch black, 1 = full brightness (no shadows)
+};
+
 // --- CORE SETTINGS ---
 const canvas = document.getElementById("game");
 const ctx    = canvas.getContext("2d");
 
-let tileSize = 30
-const spriteDim = 10;         // your sprite is 10×10
-const BASE_PIXEL_SIZE = 3;    // you want exactly 3px per sprite-pixel
-const MIN_TILE = spriteDim * BASE_PIXEL_SIZE;
-const MAX_TILE = 60;          // or whatever upper limit you like
-const mapCols  = 60;
-const mapRows  = 30;
+// --- LIGHTING SETUP (NEW) ---
+const lightCanvas = document.createElement('canvas');
+const lightCtx = lightCanvas.getContext('2d');
+
+function resizeLights() {
+    lightCanvas.width = Math.ceil(canvas.width * CONFIG.LIGHT_SCALE);
+    lightCanvas.height = Math.ceil(canvas.height * CONFIG.LIGHT_SCALE);
+    // Ensure smooth upscaling for soft shadows
+    lightCtx.imageSmoothingEnabled = true; 
+}
+
+window.addEventListener('resize', resizeLights);
+// Initial size sync
+setTimeout(resizeLights, 100);
+
+let tileSize = CONFIG.INITIAL_TILE_SIZE;
+const spriteDim = CONFIG.SPRITE_DIM;
+const BASE_PIXEL_SIZE = CONFIG.BASE_PIXEL_SIZE;
+const MIN_TILE = CONFIG.MIN_TILE;
+const MAX_TILE = CONFIG.MAX_TILE;
+const mapCols  = CONFIG.MAP_COLS;
+const mapRows  = CONFIG.MAP_ROWS;
 
 // --- EDIT vs PLAY MODE ---
-let mode = "edit"; // "edit" or "play"
+let mode = "edit"; 
 let camX = 0, camY = 0;
+
+let mouse = { x: 0, y: 0 };
+canvas.addEventListener('mousemove', e => {
+    mouse.x = e.offsetX;
+    mouse.y = e.offsetY;
+});
 
 const palsel = document.getElementById("paletteSelector");
 window.palettes = {
-  "Forest": [
-    "#1d1b2a", // shadow base (deep soil/dark tree root)
-    "#3e3c5e", // transition shadow (stone or bark detail)
-    "#67b26f", // mid foliage (leaves/grass)
-    "#a3de83", // highlight foliage (top leaf, moss)
-    "#6c567b", // wood accent (trunk, rock pattern)
-    "#ffcc57", // flower/sunlight/fruit highlight
-    "#87ceeb", // sky
-    "rgba(0,0,0,0)"
-  ],
-  "Desert": [
-    "#4a321a", // deep shadow (rock crevice/sand base)
-    "#a86030", // base sand/rock
-    "#d8a657", // midlight sand
-    "#f0d9a3", // top sand surface
-    "#8a5430", // accent (cracked stone, cliff edge)
-    "#fff2c7", // sun reflection/highlight
-    "#b4dfe5", // pale desert sky
-    "rgba(0,0,0,0)"
-  ],
-    "Pale Desert": [
-    "#8c6e56", // deep shadow (rock crevice/sand base)
-    "#d99f70", // base sand/rock
-    "#f2c98c", // midlight sand
-    "#fbeecf", // top sand surface
-    "#c48f6a", // accent (cracked stone, cliff edge)
-    "#fff9e4", // sun reflection/highlight
-    "#aad4db", // pale desert sky
-    "rgba(0,0,0,0)"
-  ],
-  "Tundra": [
-    "#2a3b4c", // cold rock/shadow
-    "#466d8c", // frozen soil
-    "#6faac3", // ice surface
-    "#a8d0db", // light ice/snow
-    "#e2f4f9", // snow highlight
-    "#ffffff", // bright snow glare
-    "#b0e0ff", // pale icy sky
-    "rgba(0,0,0,0)"
-  ],
-    "Tropical": [
-    "#2f1b0c", // wet soil
-    "#4e3b24", // palm trunk
-    "#2e8b57", // lush green
-    "#8ed487", // leaf highlight
-    "#ffe066", // sand
-    "#ffb347", // sunlit beach
-    "#3ec3d3", // bright tropical sky (turquoise)
-    "rgba(0,0,0,0)"
-  ],
-  "Swamp": [
-    "#1e1b16", // murky shadow
-    "#374227", // muddy green
-    "#5d6d3a", // algae base
-    "#7f9943", // plant growth
-    "#aab95e", // slimy highlight
-    "#dce27a", // glowing fungus/mist
-    "#6a9e76", // sickly misty sky
-    "rgba(0,0,0,0)"
-  ],
-  "Pale Swamp": [
-    "#2b2d2f", // deep jungle shadow
-    "#4a5c4e", // dense foliage
-    "#6b7f6a", // leaf base
-    "#7a9a6d", // mid foliage
-    "#a8c8a0", // light foliage
-    "#d1e3d5", // flower/sunlight/fruit highlight
-    "#89c4b0", // sickly lighter misty sky
-    "rgba(0,0,0,0)"
-  ],
-    "Mountain": [
-    "#2c2c2c", // dark rock
-    "#4b4b4b", // midstone
-    "#6b6b6b", // light stone
-    "#8a8f91", // worn edges
-    "#c0c0c0", // high-altitude sunlit rock
-    "#ede8d1", // snow cap or quartz
-    "#a2bce0", // cool sky with altitude haze
-    "rgba(0,0,0,0)"
-  ],
-  "Contrast Mountain": [
-    "#1c1c1c", // deep cave shadow
-    "#3b3b3b", // rock base
-    "#5a5a5a", // midstone
-    "#7a7a7a", // light stone
-    "#9b9b9b", // worn edges
-    "#c0c0c0", // high-altitude sunlit rock
-    "#b6cff2", // lighter cool sky with altitude haze
-    "rgba(0,0,0,0)"
-  ],
-    "Lavender": [
-    "#6f4f85", // deep lavender (shadow)
-    "#8b7f9a", // muted lavender (base)
-    "#b0a1c7", // soft lavender (midlight)
-    "#d2bcd6", // light lavender (highlight)
-    "#4f704f", // greener sage (base)
-    "#5e8c5b", // even greener sage (highlight)
-    "#b0a1c7", // pale lavender sky
-    "rgba(0,0,0,0)"
-  ],
-  "Contrast Lavender": [
-    "#3a2e47",
-    "#5a4b72",
-    "#7c6ba5",
-    "#b5a0d0",
-    "#d3c1e5",
-    "#e6d9f9",
-    "#bfb8e0",
-    "rgba(0,0,0,0)"
-  ],
+  "Forest": ["#1d1b2a", "#3e3c5e", "#67b26f", "#a3de83", "#6c567b", "#ffcc57", "#4b5bab", "#87ceeb", "#ffffff", "rgba(0,0,0,0)"],
+  "Desert": ["#4a321a", "#a86030", "#d8a657", "#f0d9a3", "#8a5430", "#fff2c7", "#804040", "#b4dfe5", "#6b8c42", "rgba(0,0,0,0)"],
+  "Pale Desert": ["#8c6e56", "#d99f70", "#f2c98c", "#fbeecf", "#c48f6a", "#fff9e4", "#8c5e56", "#aad4db", "#787878", "rgba(0,0,0,0)"],
+  "Tundra": ["#2a3b4c", "#466d8c", "#6faac3", "#a8d0db", "#e2f4f9", "#ffffff", "#2f3640", "#b0e0ff", "#2d4f3e", "rgba(0,0,0,0)"],
+  "Tropical": ["#2f1b0c", "#4e3b24", "#2e8b57", "#8ed487", "#ffe066", "#ffb347", "#008080", "#3ec3d3", "#ff4040", "rgba(0,0,0,0)"],
+  "Swamp": ["#1e1b16", "#374227", "#5d6d3a", "#7f9943", "#aab95e", "#dce27a", "#4b0082", "#6a9e76", "#4a5d43", "rgba(0,0,0,0)"],
+  "Pale Swamp": ["#2b2d2f", "#4a5c4e", "#6b7f6a", "#7a9a6d", "#a8c8a0", "#d1e3d5", "#6b5b6b", "#89c4b0", "#d8b4b4", "rgba(0,0,0,0)"],
+  "Mountain": ["#2c2c2c", "#4b4b4b", "#6b6b6b", "#8a8f91", "#c0c0c0", "#ede8d1", "#3b5323", "#a2bce0", "#755139", "rgba(0,0,0,0)"],
+  "Lavender": ["#3a2e47", "#5a4b72", "#7c6ba5", "#b5a0d0", "#d3c1e5", "#e6d9f9", "#2c2c54", "#bfb8e0", "#5a3a60", "rgba(0,0,0,0)"],
+  "Spectrum": ["#2e222f", "#e43b44", "#feae34", "#fee761", "#63c74d", "#0095e9", "#b55088", "#2ce8f5", "#ffffff", "rgba(0,0,0,0)"],
+  "Harmonic Spectrum": ["#262b44", "#cc4250", "#ed9b45", "#ebd365", "#9bc763", "#4fa4b8", "#9471b5", "#9ee3f0", "#ffffff", "rgba(0,0,0,0)"],
 };
 
-// MODDING API
+// --- LIGHTING MATH HELPERS (Ported from HTML) ---
+function hexToRgba(hex, alpha) {
+    if(!hex) return `rgba(0,0,0,${alpha})`;
+    if(hex.startsWith('rgba')) return hex;
+    let r = parseInt(hex.slice(1,3), 16), g = parseInt(hex.slice(3,5), 16), b = parseInt(hex.slice(5,7), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+}
 
-// CORE
+function getIntersection(ray, segment) {
+    const r_px = ray.px, r_py = ray.py, r_dx = ray.dx, r_dy = ray.dy;
+    const s_px = segment.p1.x, s_py = segment.p1.y;
+    const s_dx = segment.p2.x - segment.p1.x, s_dy = segment.p2.y - segment.p1.y;
+    const mag = Math.sqrt(s_dx*s_dx + s_dy*s_dy);
+    if(mag===0) return null;
+    const T2 = (r_dx*(s_py-r_py) + r_dy*(r_px-s_px))/(s_dx*r_dy - s_dy*r_dx);
+    const T1 = (s_px+s_dx*T2-r_px)/r_dx;
+    if(T1 > 0 && T2 >= 0 && T2 <= 1) return { x: r_px+r_dx*T1, y: r_py+r_dy*T1, param: T1 };
+    return null;
+}
+
+function calculateVisibility(light, segments) {
+    let points = [];
+    const b = 1500; // Large bounds
+    const bounds = [
+        {p1: {x:light.x-b, y:light.y-b}, p2: {x:light.x+b, y:light.y-b}},
+        {p1: {x:light.x+b, y:light.y-b}, p2: {x:light.x+b, y:light.y+b}},
+        {p1: {x:light.x+b, y:light.y+b}, p2: {x:light.x-b, y:light.y+b}},
+        {p1: {x:light.x-b, y:light.y+b}, p2: {x:light.x-b, y:light.y-b}}
+    ];
+    
+    let allSegments = segments.concat(bounds);
+    for(let s of allSegments) { points.push(s.p1, s.p2); }
+
+    let uniqueAngles = [];
+    for(let p of points) {
+        let angle = Math.atan2(p.y - light.y, p.x - light.x);
+        uniqueAngles.push(angle - 0.0001, angle, angle + 0.0001);
+    }
+
+    let intersects = [];
+    for(let angle of uniqueAngles) {
+        const ray = { px: light.x, py: light.y, dx: Math.cos(angle), dy: Math.sin(angle) };
+        let closest = null, minT = Infinity;
+        for(let seg of allSegments) {
+            const hit = getIntersection(ray, seg);
+            if(hit && hit.param < minT) { minT = hit.param; closest = hit; }
+        }
+        if(closest) { closest.angle = angle; intersects.push(closest); }
+    }
+    intersects.sort((a,b) => a.angle - b.angle);
+    return intersects;
+}
+
+// Convert Grid Map to Segments for Raycasting
+// Helper to check solidity without crashing on bounds
+function isBlocking(x, y) {
+    if (x < 0 || x >= mapCols || y < 0 || y >= mapRows) return false;
+    let id = levels[currentLevel][y][x][1];
+
+    // exclude modded tile ids with paremeter "TRANSPARENT" from list aswell
+    for (let modId of SystematicAPI.customIds) {
+      const def = SystematicAPI.getTileDef(modId);
+      if (def && def.properties && def.properties.TRANSPARENT) {
+        if (id === Number(modId)) return false;
+      }
+    }
+    
+    // filter springs and one way platforms from shadow casting (they still block player movement, just not light)
+    return id !== 0 && ![23,24,25,26,27,29,30,31].includes(id);
+}
+
+// Convert Grid Map to Segments (Optimized: Only external edges)
+function generateGeometryFromMap(camX, camY) {
+    let segments = [];
+    
+    const buffer = 300; // Slightly larger buffer for long shadows
+    const startCol = Math.max(0, Math.floor((camX - buffer) / tileSize));
+    const endCol   = Math.min(mapCols, Math.ceil((camX + canvas.width + buffer) / tileSize));
+    const startRow = Math.max(0, Math.floor((camY - buffer) / tileSize));
+    const endRow   = Math.min(mapRows, Math.ceil((camY + canvas.height + buffer) / tileSize));
+
+    for(let y = startRow; y < endRow; y++) {
+        for(let x = startCol; x < endCol; x++) {
+             if(isBlocking(x, y)) {
+                 let wx = x * tileSize;
+                 let wy = y * tileSize;
+                 
+                 // Only add segment if the neighbor is NOT blocking (Optimization)
+                 
+                 // Top Neighbor
+                 if (!isBlocking(x, y - 1)) 
+                    segments.push({p1:{x:wx, y:wy}, p2:{x:wx+tileSize, y:wy}});
+                 
+                 // Right Neighbor
+                 if (!isBlocking(x + 1, y)) 
+                    segments.push({p1:{x:wx+tileSize, y:wy}, p2:{x:wx+tileSize, y:wy+tileSize}});
+                 
+                 // Bottom Neighbor
+                 if (!isBlocking(x, y + 1)) 
+                    segments.push({p1:{x:wx+tileSize, y:wy+tileSize}, p2:{x:wx, y:wy+tileSize}});
+                 
+                 // Left Neighbor
+                 if (!isBlocking(x - 1, y)) 
+                    segments.push({p1:{x:wx, y:wy+tileSize}, p2:{x:wx, y:wy}});
+             }
+        }
+    }
+    return segments;
+}
+
+// MODDING API
 window.SystematicAPI = (function(){
-  // --- Internal State ---
   const api = {};
-  api.tiles        = {};        // store definitions by string-ID
-  api.customIds    = [];        // keep track of non-built-in IDs
+  api.tiles        = {};       
+  api.customIds    = []; 
+  
+  // LIGHTING API
+  api.lights = []; 
+  
+  api.addLight = function(light) {
+      // light structure: { x, y, radius, color, intensity }
+      api.lights.push(light);
+      return light;
+  };
+  
+  api.clearLights = function() {
+      api.lights = [];
+  };
 
   // --- Tile Registration ---
   api.registerTile = function(def) {
@@ -144,20 +208,14 @@ window.SystematicAPI = (function(){
     const sid = String(def.id);
     if (api.tiles[sid]) console.warn("Overwriting tile", sid);
     api.tiles[sid] = def;
-
-    // 1) inject into sprites[] for rendering caches
     sprites[sid] = [{ data: def.sprite || [[-1]], name: def.name }];
-    // 2) track as “custom”
     if (!api.customIds.includes(sid)) api.customIds.push(sid);
-    // 3) bake into caches immediately
-    buildTileCanvas(sid, 0, /*layer=*/0, "", tileCache);
-    buildTileCanvas(sid, 0, /*layer=*/1, "", tileCache);
-    // 4) rebuild brushes UI
+    buildTileCanvas(sid, 0, 0, "", tileCache);
+    buildTileCanvas(sid, 0, 1, "", tileCache);
     addSpriteToCategory("All", def.id)
     addSpriteToCategory(def.category, def.id)
     updateCategorySelector();
     createTileBrushes();
-    console.log("Registered custom tile:", sid, def.name);
   };
 
   api.getTileDef = function(id) {
@@ -166,273 +224,111 @@ window.SystematicAPI = (function(){
 
   // --- Event System ---
   const listeners = {};
-
   api.on = (eventName, fn) => {
     if (typeof fn !== "function") throw new Error("Listener must be a function");
     if (!listeners[eventName]) listeners[eventName] = [];
     listeners[eventName].push(fn);
-    // Return unsubscribe function
-    return () => {
-      listeners[eventName] = listeners[eventName].filter(f => f !== fn);
-    };
+    return () => { listeners[eventName] = listeners[eventName].filter(f => f !== fn); };
   };
-
   api.off = (eventName, fn) => {
     if (!listeners[eventName]) return;
     listeners[eventName] = listeners[eventName].filter(f => f !== fn);
   };
-
   api.trigger = (eventName, ...args) => {
-    (listeners[eventName] || []).forEach(fn => {
-      try { fn(...args); }
-      catch (err) { console.error(`hook ${eventName} threw`, err); }
-    });
+    (listeners[eventName] || []).forEach(fn => { try { fn(...args); } catch (err) { console.error(err); }});
   };
-
   api.triggerCancelable = function(eventName, ...args) {
     const fns = listeners[eventName] || [];
-    for (const fn of fns) {
-      try {
-        // if a listener explicitly returns false, we cancel
-        if (fn(...args) === false) return false;
-      } catch (err) {
-        console.error(`hook ${eventName} threw`, err);
-      }
-    }
+    for (const fn of fns) { if (fn(...args) === false) return false; }
     return true;
   };
 
   // --- Palette Registration ---
   api.registerColorPalette = function(name, colorArray) {
-    if (typeof name !== "string" || !Array.isArray(colorArray)) {
-      throw new Error("registerColorPalette(name: string, colorArray: string[])");
-    }
-    colorArray.forEach((c, i) => {
-      if (typeof c !== "string") {
-        console.warn(`Palette "${name}" index ${i} is not a string:`, c);
-      }
-    });
     window.palettes[name] = colorArray;
     updatePaletteSelector(palsel);
   };
 
   // --- Modal System ---
   const modals = {};
-
-  api.registerModal = function(name, config) {
-    if (typeof name !== "string" || typeof config !== "object") {
-      throw new Error("registerModal(name: string, config: object)");
-    }
-    modals[name] = config;
-  };
-
+  api.registerModal = function(name, config) { modals[name] = config; };
   api.showModal = function(name) {
     const config = modals[name];
-    if (!config) {
-      console.error("No modal registered under", name);
-      return;
-    }
-
-    // Create backdrop
+    if (!config) return;
     const backdrop = document.createElement("div");
     backdrop.className = "sysapi-modal-backdrop";
-    backdrop.dataset.modal = name;              // tag with name
-
-    // modal container
+    backdrop.dataset.modal = name;
     const box = document.createElement("div");
     box.className = "sysapi-modal";
-
-    // title
     const h1 = document.createElement("h2");
     h1.textContent = config.title || name;
     box.appendChild(h1);
-
-    // content
     const body = document.createElement("div");
     body.className = "sysapi-modal-content";
-    if (typeof config.content === "string") {
-      body.innerHTML = config.content;
-    } else if (config.content instanceof Node) {
-      body.appendChild(config.content);
-    } else if (typeof config.content === "function") {
-      body.appendChild(config.content());
-    }
+    if (typeof config.content === "string") body.innerHTML = config.content;
+    else if (config.content instanceof Node) body.appendChild(config.content);
+    else if (typeof config.content === "function") body.appendChild(config.content());
     box.appendChild(body);
-
-    // buttons
     const footer = document.createElement("div");
     footer.className = "sysapi-modal-footer";
     (config.buttons || []).forEach(btnCfg => {
       const btn = document.createElement("button");
       btn.textContent = btnCfg.label;
-      if (btnCfg.className) btn.classList.add(btnCfg.className);
-      btn.onclick = () => {
-        try { btnCfg.onClick(); }
-        catch(err){ console.error(err); }
-        api.hideModal(name);                   // hide this modal
-      };
+      btn.onclick = () => { try { btnCfg.onClick(); } catch(err){ console.error(err); } api.hideModal(name); };
       footer.appendChild(btn);
     });
     box.appendChild(footer);
-
     backdrop.appendChild(box);
     document.body.appendChild(backdrop);
   };
-
   api.hideModal = function(name) {
-    let selector;
-    if (typeof name === "string") {
-      selector = `.sysapi-modal-backdrop[data-modal="${name}"]`;
-    } else {
-      // no name = close the first/backmost modal
-      selector = ".sysapi-modal-backdrop";
-    }
+    let selector = typeof name === "string" ? `.sysapi-modal-backdrop[data-modal="${name}"]` : ".sysapi-modal-backdrop";
     const backdrop = document.querySelector(selector);
     if (backdrop) backdrop.remove();
   };
 
-  // 4) optional styling
+  // Modal Styling
   const style = document.createElement("style");
   style.textContent = `
-    .sysapi-modal-backdrop {
-      position:fixed; top:0; left:0; right:0; bottom:0;
-      background: rgba(0,0,0,0.5);
-      display:flex; align-items:center; justify-content:center;
-      z-index:1000;
-    }
-    .sysapi-modal {
-      background:#fff; border-radius:6px; padding:16px;
-      max-width:80vw; max-height:80vh; overflow:auto;
-      box-shadow:0 2px 10px rgba(0,0,0,0.3);
-    }
+    .sysapi-modal-backdrop { position:fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:1000; }
+    .sysapi-modal { background:#fff; border-radius:6px; padding:16px; max-width:80vw; max-height:80vh; overflow:auto; box-shadow:0 2px 10px rgba(0,0,0,0.3); }
     .sysapi-modal-content { margin:12px 0; }
     .sysapi-modal-footer { text-align:right; }
     .sysapi-modal-footer button { margin-left:8px; }
   `;
   document.head.appendChild(style);
 
-  // === Impoved Global Store ===
+  // === Property Schema ===
   let tilePropertySchemas = {
-    23: [ // Bounce Tile
-      { key: "jumpStrength", label: "Jump Strength", type: "number", min: 0.1, step: 0.1, default: 1.0 }
-    ],
-    27: [ // One-Way Platform
-      { key: "allowDrop",    label: "Allow Drop (press S)", type: "checkbox", default: false }
-    ],
-    31: [
-      { key: "text", label: "Text", type: "text", default: "" }
-    ]
+    23: [{ key: "jumpStrength", label: "Jump Strength", type: "number", min: 0.1, step: 0.1, default: 1.0 }],
+    27: [{ key: "allowDrop", label: "Allow Drop (press S)", type: "checkbox", default: false }],
+    31: [{ key: "text", label: "Text", type: "text", default: "" }]
   };
 
-  // === 1. FIELD-DEFINITION VALIDATOR ===
-  function validateFieldDef(field) {
-    const { key, label, type, default: def } = field;
-    if (typeof key !== 'string' || key.trim() === '') {
-      console.error(`Field key must be a non-empty string`, field);
-      return false;
-    }
-    if (typeof label !== 'string') {
-      console.error(`Field label must be a string`, field);
-      return false;
-    }
-    if (!['number','text','checkbox','select','color'].includes(type)) {
-      console.error(`Unsupported field type "${type}"`, field);
-      return false;
-    }
-    // default exists?
-    if (def === undefined) {
-      console.warn(`No default provided for "${key}", setting to null`);
-      field.default = null;
-    }
-    return true;
-  }
+  function validateFieldDef(field) { return typeof field.key === 'string' && field.key.trim() !== ''; }
 
-  // === 2. REGISTER (OVERWRITE) WITH VALIDATION ===
   api.registerTilePropertySchema = function(tileID, schemaArray) {
-    if (!Array.isArray(schemaArray)) {
-      console.warn(`Schema for tile ${tileID} must be an array.`);
-      return;
-    }
-    // Validate each field
-    const goodFields = schemaArray.filter(f => validateFieldDef(f));
-    if (goodFields.length !== schemaArray.length) {
-      console.warn(`Some invalid fields were dropped for tile ${tileID}.`);
-    }
-    if (tilePropertySchemas[tileID]) {
-      console.warn(`Overriding existing schema for tile ${tileID}`);
-    }
-    tilePropertySchemas[tileID] = goodFields;
+    tilePropertySchemas[tileID] = schemaArray.filter(f => validateFieldDef(f));
   };
-
-  api.extendTilePropertySchema = function(tileID, extraFields) {
-    if (!Array.isArray(extraFields)) {
-      console.warn(`extraFields for tile ${tileID} must be an array.`);
-      return;
-    }
-    const validExtras = extraFields.filter(f => validateFieldDef(f));
-    tilePropertySchemas[tileID] = (tilePropertySchemas[tileID] || []).concat(validExtras);
-  };
-
-  api.getTilePropertySchema = function(tileID) {
-    return tilePropertySchemas[tileID] ? [...tilePropertySchemas[tileID]] : [];
-  };
-
-  api.removeTilePropertySchema = function(tileID) {
-    if (tilePropertySchemas[tileID]) {
-      delete tilePropertySchemas[tileID];
-      console.log(`Removed schema for tile ${tileID}`);
-    }
-  };
+  api.getTilePropertySchema = function(tileID) { return tilePropertySchemas[tileID] ? [...tilePropertySchemas[tileID]] : []; };
+  api.removeTilePropertySchema = function(tileID) { delete tilePropertySchemas[tileID]; };
 
   // --- Particle System ---
   api._emitters = {};
   api._particles = [];
-
-  /**
-   * registerParticleEmitter(name, config)
-   *
-   * config = {
-   *   max:        number of particles per emission,
-   *   lifetime:   [minMs, maxMs],
-   *   velocity:   { x: [min,max], y: [min,max] },
-   *   gravity:    number (added to vy each frame),
-   *   color:      string or [array of strings],
-   *   size:       [minPx, maxPx]
-   * }
-   */
-  api.registerParticleEmitter = function(name, config) {
-    if (!name || typeof config !== 'object') {
-      throw new Error("registerParticleEmitter requires (name, config)");
-    }
-    api._emitters[name] = config;
-  };
-
-  /**
-   * emitParticles(name, x, y)
-   * spawns up to config.max particles at world‐coords x,y
-   */
+  api.registerParticleEmitter = function(name, config) { api._emitters[name] = config; };
   api.emitParticles = function(name, x, y) {
     const cfg = api._emitters[name];
-    if (!cfg) {
-      console.warn("No emitter:", name);
-      return;
-    }
+    if (!cfg) return;
     for (let i = 0; i < (cfg.max||10); i++) {
       const life = randRange(cfg.lifetime[0], cfg.lifetime[1]);
       const vx   = randRange(cfg.velocity.x[0], cfg.velocity.x[1]);
       const vy   = randRange(cfg.velocity.y[0], cfg.velocity.y[1]);
-      const col  = Array.isArray(cfg.color)
-        ? cfg.color[Math.floor(Math.random()*cfg.color.length)]
-        : cfg.color;
+      const col  = Array.isArray(cfg.color) ? cfg.color[Math.floor(Math.random()*cfg.color.length)] : cfg.color;
       const sz   = randRange(cfg.size[0], cfg.size[1]);
-      api._particles.push({
-        x, y, vx, vy, life, age: 0,
-        gravity: cfg.gravity||0,
-        color: col, size: sz
-      });
+      api._particles.push({ x, y, vx, vy, life, age: 0, gravity: cfg.gravity||0, color: col, size: sz });
     }
   };
-
   api._updateParticles = function(dt) {
     const out = [];
     for (const p of api._particles) {
@@ -446,36 +342,20 @@ window.SystematicAPI = (function(){
     }
     api._particles = out;
   };
-
   api._drawParticles = function(ctx, camX, camY, tileSize) {
     for (const p of api._particles) {
       ctx.fillStyle = p.color;
-      const sx = p.x - camX;
-      const sy = p.y - camY;
       ctx.beginPath();
-      ctx.arc(sx, sy, p.size, 0, 2*Math.PI);
+      ctx.arc(p.x - camX, p.y - camY, p.size, 0, 2*Math.PI);
       ctx.fill();
     }
   };
 
   // --- Tile/Level Utilities ---
-  api.getTileAt = function(x, y, layer = 1) {
-    if (
-      typeof x !== "number" || typeof y !== "number" ||
-      x < 0 || y < 0 || x >= mapCols || y >= mapRows
-    ) return null;
-    return levels[currentLevel][y][x][layer];
-  };
-
-  api.setTileAt = function(x, y, layer, id) {
-    if (
-      typeof x !== "number" || typeof y !== "number" ||
-      x < 0 || y < 0 || x >= mapCols || y >= mapRows
-    ) return false;
-    levels[currentLevel][y][x][layer] = id;
-    return true;
-  };
-
+  api.getTileAt = function(x, y, layer = 1) { return levels[currentLevel][y]?.[x]?.[layer]; };
+  api.setTileAt = function(x, y, layer, id) { if(levels[currentLevel][y]?.[x]) levels[currentLevel][y][x][layer] = id; return true; };
+  api.getTileProperties = function(x, y, layer = 1) { return tilePropsData[`${currentLevel}-${x}-${y}-${layer}`] || {}; };
+  api.setTileProperties = function(x, y, layer, props) { tilePropsData[`${currentLevel}-${x}-${y}-${layer}`] = { ...props }; };
   api.fillRect = function(x, y, w, h, layer, id) {
     for (let dy = 0; dy < h; dy++) {
       for (let dx = 0; dx < w; dx++) {
@@ -516,20 +396,6 @@ window.SystematicAPI = (function(){
       return true;
     }
     return false;
-  };
-
-  /**
-   * getTileProperties(x, y, layer)
-   * Returns the custom properties object for a tile, if any.
-   */
-  api.getTileProperties = function(x, y, layer = 1) {
-    const key = `${currentLevel}-${x}-${y}-${layer}`;
-    return tilePropsData[key] || {};
-  };
-
-  api.setTileProperties = function(x, y, layer, props) {
-    const key = `${currentLevel}-${x}-${y}-${layer}`;
-    tilePropsData[key] = { ...props };
   };
 
   api.forEachTile = function(callback) {
@@ -573,278 +439,129 @@ window.SystematicAPI = (function(){
 })();
 
 const TEXT_TILE_ID = 31
-
-// remember how many built-in sprites there were
 const originalBuiltInCount = sprites.length;
+const all = sprites.map((_, i) => i).filter(i => ![24,25,26,29,30].includes(i));
+const painted = sprites.map((_, i) => i).filter(i => i >= originalBuiltInCount);
 
-    // brush categories
-    const all       = sprites.map((_, i) => i).filter(i => ![24,25,26,29,30].includes(i));
-    const painted   = sprites.map((_, i) => i)
-                            .filter(i => i >= originalBuiltInCount);
-    let builtinCategories = {
-      "All":        all,
-      "Terrain":    [0,1,2,3,4,35,38,37],
-      "Cobblestone":[0,7,8,9,10,11,12,13,14],
-      "Wood":       [0,21,22],
-      "Ancient Stones":[5,6,15,16,17,18,19,20,32,33,34],
-      "Other":      [0,23,27,28,31,36,39],
-      "Painted":    painted
-    };
+let builtinCategories = {
+  "All":        all,
+  "Terrain":    [0,1,2,3,4,35,38,37],
+  "Cobblestone":[0,7,8,9,10,11,12,13,14],
+  "Wood":       [0,21,22],
+  "Ancient Stones":[5,6,15,16,17,18,19,20,32,33,34],
+  "Other":      [0,23,27,28,31,36,39],
+  "Painted":    painted
+};
 
-    let brushCategories = {};
+let brushCategories = {};
+let currentCategory = "All";
+let tileSearchQuery = "";
+let palette = window.palettes["Forest"];
+let currentTile = 2;
+let layerCount = 2; 
+let levels = [];
+let currentLevel = 0;
 
-    let currentCategory = "All";
-    let tileSearchQuery = "";
+function makeEmptyLevel() {
+  return Array.from({ length: mapRows }, () => Array.from({ length: mapCols }, () => new Array(layerCount).fill(0)));
+}
+levels.push(makeEmptyLevel());        
+let level = levels[currentLevel];     
+const tilePropsData = {};
 
-    // --- STATE ---
-    let palette = palettes["Forest"];
-    let currentTile = 2;
+let player = {
+  x: 100, y: 100, vx: 0, vy: 0, width: 22, height: 22, onGround: false,
+  sprite: [[1,1,0,1,1,0,1,1],[1,0,0,0,0,0,0,1],[0,0,0,2,2,0,0,0],[1,0,2,3,3,2,0,1],[1,0,2,3,3,2,0,1],[0,0,0,2,2,0,0,0],[1,0,0,0,0,0,0,1],[1,1,0,1,1,0,1,1]],
+  spriteDim: 8
+};
+const keys = {};
 
-    // --- LEVEL AND LAYERS ---
-    let layerCount = 2;  // for example: background, terrain
+updatePaletteSelector(palsel);
 
-    // Initialize level as 2D grid of arrays:
-    let levels = [];
-    let currentLevel = 0;
+function updatePaletteSelector(palsel) {
+  if (!palsel) return;
+  palsel.innerHTML = Object.keys(window.palettes).map(name => `<option value="${name}">${name}</option>`).join("");
+}
+palsel.onchange = e => { palette = window.palettes[e.target.value]; createTileBrushes(); onPaletteChangeForLayer(0,palette); onPaletteChangeForLayer(1,palette); };
 
+const controlsPanel = document.getElementById('controls');
+document.getElementById('toggleControls').addEventListener('click', () => {
+  const isVisible = controlsPanel.style.display === 'flex';
+  controlsPanel.style.display = isVisible ? 'none' : 'flex';
+});
+document.getElementById('playtestBtn').addEventListener('click', togglePlaytest);
+document.getElementById("saveLevel").addEventListener("click", saveLevel);
+document.getElementById("loadLevel").addEventListener("click", () => {
+  const input = document.createElement("input");
+  input.type = "file"; input.accept= ".json";
+  input.onchange = e => { if (e.target.files[0]) loadAllLevelsFromFile(e.target.files[0]); };
+  input.click();
+});
 
-    // initialize with one blank level:
-    function makeEmptyLevel() {
-      return Array.from({ length: mapRows }, () =>
-        Array.from({ length: mapCols }, () =>
-          new Array(layerCount).fill(0)
-        )
-      );
-    }
+const catSel = document.getElementById("categorySelector");
+catSel.onchange = e => { currentCategory = e.target.value; createTileBrushes(); };
+document.getElementById("layerSelector").onchange = e => { currentLayer = Number(e.target.value); };
 
-    levels.push(makeEmptyLevel());        // start with level 0
-    let level = levels[currentLevel];     // alias for convenience
+const prevBtn = document.getElementById("prevLevel"), nextBtn = document.getElementById("nextLevel"), addBtn = document.getElementById("addLevel"), lbl = document.getElementById("levelLabel");
+function refreshLevelLabel() { lbl.textContent = `Level ${currentLevel + 1} / ${levels.length}`; }
+prevBtn.onclick = () => { if (currentLevel > 0) { currentLevel--; level = levels[currentLevel]; refreshLevelLabel(); }};
+nextBtn.onclick = () => { if (currentLevel < levels.length - 1) { currentLevel++; level = levels[currentLevel]; refreshLevelLabel(); }};
+addBtn.onclick = () => { levels.push(makeEmptyLevel()); currentLevel = levels.length - 1; level = levels[currentLevel]; refreshLevelLabel(); };
+refreshLevelLabel();
 
-    // keyed by: `${levelIndex}-${x}-${y}-${layer}`
-    const tilePropsData = {};
+document.getElementById("tileSearch").addEventListener("input", e => { tileSearchQuery = e.target.value.trim().toLowerCase(); createTileBrushes(); });
 
-    // --- PLAYER ---
-    let player = {
-      x: 100, y: 100,
-      vx: 0, vy: 0,
-      width: 22, height: 22,
-      onGround: false,
-      sprite:
-      [
-        [1,1,0,1,1,0,1,1],
-        [1,0,0,0,0,0,0,1],
-        [0,0,0,2,2,0,0,0],
-        [1,0,2,3,3,2,0,1],
-        [1,0,2,3,3,2,0,1],
-        [0,0,0,2,2,0,0,0],
-        [1,0,0,0,0,0,0,1],
-        [1,1,0,1,1,0,1,1],
-      ],
-      spriteDim: 8
-    };
-    const gravityTiles   = 0.007;   // add 0.007 tiles of downward velocity per frame
-    const jumpTiles      = -0.20;  // an instant -0.22 tiles/sec when you jump
-    const moveTiles      = 0.1;   // move 0.1 tiles per frame horizontally
-    const keys = {};
+const canvasContainer = document.getElementById("canvasContainer"), tileProps = document.getElementById("tileProps"), propXY = document.getElementById("propXY"), customProps = document.getElementById("customProps"), btnApply = document.getElementById("propApply"), btnClose = document.getElementById("propClose");
 
-    updatePaletteSelector(palsel);
+canvas.addEventListener("contextmenu", e => {
+  e.preventDefault();
+  const tx = Math.floor((e.offsetX + camX) / tileSize);
+  const ty = Math.floor((e.offsetY + camY) / tileSize);
+  if (tx < 0 || ty < 0 || tx >= mapCols || ty >= mapRows) return;
+  const layer = currentLayer;
+  const id = levels[currentLevel][ty][tx][layer];
+  const schema = SystematicAPI.getTilePropertySchema(id);
+  if (!schema.length) return;
+  lastTileX = tx; lastTileY = ty; lastLayer = layer;
+  propXY.textContent = `${tx}, ${ty}`;
+  customProps.innerHTML = "";
+  const existing = tilePropsData[`${currentLevel}-${tx}-${ty}-${layer}`] || {};
+  schema.forEach(field => {
+    const wrapper = document.createElement("div");
+    const input = document.createElement("input");
+    input.type = field.type === "checkbox" ? "checkbox" : field.type;
+    input.id = `propField-${field.key}`;
+    input.name = field.key;
+    if (field.type === "checkbox") input.checked = existing[field.key] ?? field.default;
+    else { if (field.min != null) input.min = field.min; if (field.step != null) input.step = field.step; input.value = existing[field.key] ?? field.default; }
+    const label = document.createElement("label");
+    label.htmlFor = input.id;
+    label.textContent = field.label + ": ";
+    wrapper.appendChild(label); wrapper.appendChild(input); customProps.appendChild(wrapper);
+  });
+  tileProps.classList.add("open"); canvasContainer.classList.add("shifted");
+});
 
-    function updatePaletteSelector(palsel) {
-      if (!palsel) return;
-      palsel.innerHTML = Object.keys(window.palettes)
-        .map(name => `<option value="${name}">${name}</option>`)
-        .join("");
-    }
+btnApply.onclick = () => {
+  const key = `${currentLevel}-${lastTileX}-${lastTileY}-${lastLayer}`;
+  const id = levels[currentLevel][lastTileY][lastTileX][lastLayer];
+  const schema = SystematicAPI.getTilePropertySchema(id);
+  const data = {};
+  schema.forEach(field => {
+    const inp = document.getElementById(`propField-${field.key}`);
+    data[field.key] = field.type === "checkbox" ? inp.checked : (field.type === "number" ? parseFloat(inp.value) : inp.value);
+  });
+  const oldProps = {...tilePropsData[key]}; tilePropsData[key] = data;
+  undoStack.push({ type:'prop', key, oldProps, data });
+  if (undoStack.length>CONFIG.MAX_HISTORY) undoStack.shift(); redoStack.length = 0;
+  tileProps.classList.remove("open"); canvasContainer.classList.remove("shifted");
+};
+btnClose.onclick = () => { tileProps.classList.remove("open"); canvasContainer.classList.remove("shifted"); };
 
-    palsel.onchange = e => {  // use palsel directly, no getElementById here
-      palette = window.palettes[e.target.value];
-      createTileBrushes();
-    };
+let isPainting = false;
+let currentLayer = 1;
 
-    const controlsPanel = document.getElementById('controls');
-    document.getElementById('toggleControls').addEventListener('click', () => {
-      const isVisible = controlsPanel.style.display === 'flex';
-      controlsPanel.style.display = isVisible ? 'none' : 'flex';
-      document.getElementById('toggleControls').textContent = isVisible ? 'Show Controls' : 'Hide Controls';
-    });
-
-    document.getElementById('playtestBtn').addEventListener('click', () => {
-      togglePlaytest();
-    });
-
-    document.getElementById("saveLevel").addEventListener("click", saveLevel);
-
-    // wire the file‐input
-    document.getElementById("loadLevel").addEventListener("click", () => {
-      const input = document.createElement("input");
-      input.type  = "file";
-      input.accept= ".json";
-      input.onchange = e => {
-        const f = e.target.files[0];
-        if (f) loadAllLevelsFromFile(f);
-      };
-      input.click();
-    });
-
-    // (optional) add a “Restore Last Save” button:
-    const restoreBtn = document.createElement("button");
-    restoreBtn.textContent = "Restore Last Save";
-    restoreBtn.onclick   = loadAllLevelsFromStorage;
-    document.getElementById("levelControls").appendChild(restoreBtn);
-
-    const catSel = document.getElementById("categorySelector");
-    // Populate category dropdown
-    catSel.onchange = e => {
-      currentCategory = e.target.value;
-      createTileBrushes();
-    };
-
-    document.getElementById("layerSelector").onchange = e => {
-      currentLayer = Number(e.target.value);
-    };
-
-    const prevBtn = document.getElementById("prevLevel");
-    const nextBtn = document.getElementById("nextLevel");
-    const addBtn  = document.getElementById("addLevel");
-    const lbl     = document.getElementById("levelLabel");
-
-    function refreshLevelLabel() {
-      lbl.textContent = `Level ${currentLevel + 1} / ${levels.length}`;
-    }
-
-    // switch levels
-    prevBtn.onclick = () => {
-      if (currentLevel > 0) {
-        currentLevel--;
-        level = levels[currentLevel];
-        refreshLevelLabel();
-      }
-    };
-    nextBtn.onclick = () => {
-      if (currentLevel < levels.length - 1) {
-        currentLevel++;
-        level = levels[currentLevel];
-        refreshLevelLabel();
-      }
-    };
-    // add new blank level
-    addBtn.onclick = () => {
-      levels.push(makeEmptyLevel());
-      currentLevel = levels.length - 1;
-      level = levels[currentLevel];
-      refreshLevelLabel();
-    };
-    // init
-    refreshLevelLabel();
-    
-    const tileSearchInput = document.getElementById("tileSearch");
-    tileSearchInput.addEventListener("input", e => {
-      tileSearchQuery = e.target.value.trim().toLowerCase();
-      createTileBrushes();
-    });
-
-    // Grab once at top level
-    const canvasContainer = document.getElementById("canvasContainer");
-    const tileProps       = document.getElementById("tileProps");
-    const propXY          = document.getElementById("propXY");
-    const customProps     = document.getElementById("customProps");
-    const btnApply        = document.getElementById("propApply");
-    const btnClose        = document.getElementById("propClose");
-
-    // === 1) CONTEXTMENU: OPEN THE PROPS SIDEBAR ===
-    canvas.addEventListener("contextmenu", e => {
-      e.preventDefault();
-      const tx = Math.floor((e.offsetX + camX) / tileSize);
-      const ty = Math.floor((e.offsetY + camY) / tileSize);
-      if (tx < 0 || ty < 0 || tx >= mapCols || ty >= mapRows) return;
-
-      const layer = currentLayer;
-      const id    = levels[currentLevel][ty][tx][layer];
-      // USE THE API ACCESSOR
-      const schema = SystematicAPI.getTilePropertySchema(id);
-      if (!schema.length) return;
-
-      // remember for apply
-      lastTileX = tx; lastTileY = ty; lastLayer = layer;
-      propXY.textContent = `${tx}, ${ty}`;
-
-      // build the custom form
-      customProps.innerHTML = "";
-      const key      = `${currentLevel}-${tx}-${ty}-${layer}`;
-      const existing = tilePropsData[key] || {};
-
-      schema.forEach(field => {
-        const wrapper = document.createElement("div");
-
-        // input
-        const input = document.createElement("input");
-        input.type    = field.type === "checkbox" ? "checkbox" : field.type;
-        input.id      = `propField-${field.key}`;
-        input.name    = field.key;
-        if (field.type === "checkbox") {
-          input.checked = existing[field.key] ?? field.default;
-        } else {
-          if (field.min  != null) input.min  = field.min;
-          if (field.step != null) input.step = field.step;
-          input.value   = existing[field.key] ?? field.default;
-        }
-
-        // label
-        const label = document.createElement("label");
-        label.htmlFor    = input.id;
-        label.textContent = field.label + ": ";
-
-        wrapper.appendChild(label);
-        wrapper.appendChild(input);
-        customProps.appendChild(wrapper);
-      });
-
-        // slide in
-        tileProps.classList.add("open");
-        canvasContainer.classList.add("shifted");
-      });
-
-      btnApply.onclick = () => {
-        const key    = `${currentLevel}-${lastTileX}-${lastTileY}-${lastLayer}`;
-        const id     = levels[currentLevel][lastTileY][lastTileX][lastLayer];
-        const schema = SystematicAPI.getTilePropertySchema(id);
-        const data   = {};
-
-        schema.forEach(field => {
-          const inp = document.getElementById(`propField-${field.key}`);
-          let val;
-          if (field.type === "checkbox") {
-            val = inp.checked;
-          } else if (field.type === "number") {
-            val = parseFloat(inp.value);
-          } else {
-            // for type === "text" (and any other), just take the string
-            val = inp.value;
-          }
-          data[field.key] = val;
-        });
-
-        // save back
-        const oldProps = {...tilePropsData[key]}; 
-        tilePropsData[key] = data;
-
-        // record as a special action
-        undoStack.push({ type:'prop', key, oldProps, data });
-        if (undoStack.length>MAX_HISTORY) undoStack.shift();
-        redoStack.length = 0;
-          
-        // close sidebar
-        tileProps.classList.remove("open");
-        canvasContainer.classList.remove("shifted");
-      };
-
-    // Close: just slide out
-    btnClose.onclick = () => {
-      tileProps.classList.remove("open");
-      canvasContainer.classList.remove("shifted");
-    };
-
-    const browseBtn   = document.getElementById('browseShared');
+   const browseBtn   = document.getElementById('browseShared');
     const sharedModalBackdrop = document.getElementById('sharedModalBackdrop');
     const sharedList  = document.getElementById('sharedList');
     const closeBtn    = document.getElementById('closeShared');
@@ -971,513 +688,373 @@ const originalBuiltInCount = sprites.length;
       docsModal.style.display = 'none';
     });
 
-    let isPainting = false;
-    let currentLayer = 1;  // 0 = background, 1 = terrain, 2 = objects
+canvas.addEventListener("mousedown", e => {
+  if (mode !== "edit" || e.button !== 0) return;
+  if (currentTile === TEXT_TILE_ID) placeTextTile(e);
+  else { isPainting = true; paintAt(e); }
+  const rect = canvas.getBoundingClientRect();
+  SystematicAPI.trigger("onMouseDown", e.clientX - rect.left, e.clientY - rect.top, e.button);
+});
+canvas.addEventListener("mousemove", e => { if (isPainting) paintAt(e); });
+window.addEventListener("mouseup", e => { isPainting = false; const rect = canvas.getBoundingClientRect(); SystematicAPI.trigger("onMouseUp", e.clientX - rect.left, e.clientY - rect.top, e.button); });
+canvas.addEventListener("mouseleave", () => { isPainting = false; });
+canvas.addEventListener("wheel", e => {
+  if (mode !== "edit") return;
+  e.preventDefault();
+  const direction = e.deltaY < 0 ? 1 : -1;
+  let newSize = Math.max(CONFIG.MIN_TILE, Math.min(CONFIG.MAX_TILE, tileSize + direction * spriteDim));
+  if (newSize === tileSize) return;
+  tileSize = newSize;
+  camX = Math.max(0, Math.min(camX, mapCols * tileSize - canvas.width));
+  camY = Math.max(0, Math.min(camY, mapRows * tileSize - canvas.height));
+  tileCache = {}; animTileCache = {}; buildStaticTileCache(); buildAnimatedCache();
+});
 
-    // --- INPUT HANDLERS ---
-    canvas.addEventListener("mousedown", e => {
-      if (mode !== "edit" || e.button !== 0) return;
+window.addEventListener("keydown", e => {
+  keys[e.key] = true;
+  SystematicAPI.trigger("onKeyDown", e.key, e);
+  if ((e.ctrlKey||e.metaKey) && e.key === 'z') { e.preventDefault(); undo(); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'y') { e.preventDefault(); redo(); }
+});
+window.addEventListener("keyup", e => { keys[e.key] = false; SystematicAPI.trigger("onKeyUp", e.key, e); });
 
-      if (currentTile === TEXT_TILE_ID) {
-        // one-off text placement
-        placeTextTile(e);
-      } else {
-        // normal click-and-drag painting
-        isPainting = true;
-        paintAt(e);
-      }
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      SystematicAPI.trigger("onMouseDown", x, y, e.button);
+function encodeLevels(levels) { return LZString.compressToEncodedURIComponent(JSON.stringify(levels)); }
+function decodeLevels(hash) { try { return JSON.parse(LZString.decompressFromEncodedURIComponent(hash)); } catch { return null; }}
+function updateURLState() { history.replaceState(null, "", "#" + encodeLevels(levels)); }
+
+function deriveDark(palette) {
+  return palette.map(color => {
+    if (color.startsWith("rgba")) return color;
+    const rgb = hexToRgb(color);
+    return `rgb(${Math.floor(rgb.r * 0.5)},${Math.floor(rgb.g * 0.5)},${Math.floor(rgb.b * 0.5)})`;
+  });
+}
+function hexToRgb(hex) {
+  hex = hex.replace("#", "");
+  const bigint = parseInt(hex, 16);
+  return { r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255 };
+}
+
+function placeTextTile(e) {
+  const x = Math.floor((e.offsetX + camX) / tileSize), y = Math.floor((e.offsetY + camY) / tileSize);
+  if (x < 0 || y < 0 || x >= mapCols || y >= mapRows) return;
+  const txt = prompt(`Enter text at (${x},${y}):`, "");
+  if (txt === null) return;
+  levels[currentLevel][y][x][currentLayer] = TEXT_TILE_ID;
+  tilePropsData[`${currentLevel}-${x}-${y}-${currentLayer}`] = { text: txt };
+}
+
+const undoStack = [], redoStack = [];
+function paintAt(e) {
+  const x = Math.floor((e.offsetX + camX) / tileSize), y = Math.floor((e.offsetY + camY) / tileSize);
+  if (x<0||y<0||x>=mapCols||y>=mapRows) return;
+  const layer = currentLayer, oldTile = level[y][x][layer], newTile = currentTile;
+  if (oldTile===newTile) return;
+  undoStack.push({ x,y,layer,oldTile,newTile });
+  if (undoStack.length>CONFIG.MAX_HISTORY) undoStack.shift(); redoStack.length=0;
+  level[y][x][layer] = newTile;
+  
+  SystematicAPI.trigger("onTilePlaced", x * 30, y * 30, layer, newTile);
+  updateURLState();
+}
+
+function undo() {
+  if (!undoStack.length) return;
+  const action = undoStack.pop(); redoStack.push(action);
+  if (action.type === 'prop') { tilePropsData[action.key] = action.oldProps; if(tileProps.classList.contains("open")) btnApply.click(); }
+  else level[action.y][action.x][action.layer] = action.oldTile;
+}
+function redo() {
+  if (!redoStack.length) return;
+  const action = redoStack.pop(); undoStack.push(action);
+  if (action.type === 'prop') { tilePropsData[action.key] = action.data; if(tileProps.classList.contains("open")) btnApply.click(); }
+  else level[action.y][action.x][action.layer] = action.newTile;
+}
+
+const SPIKE_BASE_ID = 28, spikeFrames = [28, 29, 30, 29, 29], spikeHold = CONFIG.SPIKE_HOLD;
+let globalTick = 0, darkPalette = deriveDark(palette);
+let tileCache = {}, animTileCache = {}, lastCacheUpdate = 0;
+
+function buildStaticTileCache() {
+  for (let id in sprites) {
+    if (!sprites[id]?.length || Number(id) === SPIKE_BASE_ID) continue;
+    for (let layer = 0; layer < layerCount; layer++) buildTileCanvas(id, 0, layer, '', tileCache);
+  }
+}
+function buildAnimatedCache() {
+  animTileCache = {};
+  for (let f = 0; f < spikeFrames.length; f++) buildTileCanvas(spikeFrames[f], f, 0, '', animTileCache);
+  lastCacheUpdate = performance.now();
+}
+function onPaletteChangeForLayer(layerIndex, newArr) {
+  if (layerIndex === 0) darkPalette = deriveDark(newArr); else palette = newArr;
+  Object.keys(tileCache).forEach(key => { if (key.split(':')[2] == layerIndex) delete tileCache[key]; });
+  Object.keys(animTileCache).forEach(key => { if (key.split(':')[2] == layerIndex) delete animTileCache[key]; });
+  for (let id in sprites) buildTileCanvas(id, 0, layerIndex, "", tileCache);
+  if (layerIndex === 0) buildAnimatedCache();
+}
+function buildTileCanvas(id, frame, layer, flags, cacheObj) {
+  const keyId = String(id), sprArr = sprites[keyId];
+  if (!sprArr) return;
+  const entry = sprArr[frame >= sprArr.length ? 0 : frame];
+  if (!entry?.data) return;
+  const sprite = entry.data, pal = layer === 0 ? darkPalette : palette;
+  const dim = sprite.length, pixelSize = Math.floor(tileSize / dim) || 1, offset = Math.floor((tileSize - dim*pixelSize)/2);
+  const cvs = document.createElement('canvas'); cvs.width = cvs.height = tileSize; const cx = cvs.getContext('2d');
+  for (let y = 0; y < dim; y++) {
+    for (let x = 0; x < dim; x++) {
+      const ci = sprite[y][x];
+      if (ci < 0) continue;
+      const raw = pal[ci];
+      if (!raw || raw === "rgba(0,0,0,0)") continue;
+      cx.fillStyle = raw; cx.fillRect(offset + x*pixelSize, offset + y*pixelSize, pixelSize, pixelSize);
+    }
+  }
+  cacheObj[`${keyId}:${frame}:${layer}:${flags}`] = cvs;
+}
+buildStaticTileCache(); buildAnimatedCache();
+
+function renderLighting() {
+    if(!CONFIG.ENABLE_LIGHTING) return;
+    
+    const scale = CONFIG.LIGHT_SCALE;
+
+    // --- CUSTOMIZABLE SHADOW TRANSPARENCY ---
+    // Instead of black, we calculate a gray based on AMBIENT_LIGHT
+    lightCtx.globalCompositeOperation = 'source-over';
+    const ambientIntensity = Math.floor(255 * CONFIG.AMBIENT_LIGHT);
+    lightCtx.fillStyle = `rgb(${ambientIntensity}, ${ambientIntensity}, ${ambientIntensity})`;
+    
+    // Fill the lightmap with this "dim light" instead of darkness
+    lightCtx.fillRect(0, 0, lightCanvas.width, lightCanvas.height);
+
+    // Prepare active lights
+    let activeLights = [...SystematicAPI.lights];
+
+    // Sun (Customizable Sun Color)
+    activeLights.push({ 
+        x: camX + canvas.width/2, 
+        y: camY - 1000, 
+        radius: 2000, 
+        color: '#aa9dfe', 
+        intensity: 1.0 // Sun usually overpowers ambient
     });
 
-    canvas.addEventListener("mousemove", e => {
-      if (isPainting) paintAt(e);
-    });
+    // Generate Geometry from Grid
+    const geometry = generateGeometryFromMap(camX, camY);
 
-    window.addEventListener("mouseup", e => {
-      isPainting = false;
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      SystematicAPI.trigger("onMouseUp", x, y, e.button);
-    });
-    canvas.addEventListener("mouseleave", () => {
-      isPainting = false;
-    });
+    for(let light of activeLights) {
+        // Culling
+        const sx = light.x - camX;
+        const sy = light.y - camY;
+        if(sx + light.radius < 0 || sx - light.radius > canvas.width || 
+           sy + light.radius < 0 || sy - light.radius > canvas.height) continue;
+        
+        const polygon = calculateVisibility(light, geometry);
 
-    canvas.addEventListener("wheel", e => {
-      if (mode !== "edit") return;
-      e.preventDefault();
+        lightCtx.save();
 
-      // Compute the new tileSize
-      const direction = e.deltaY < 0 ? 1 : -1;
-      let newSize = tileSize + direction * spriteDim;
-      newSize = Math.max(MIN_TILE, Math.min(MAX_TILE, newSize));
-      if (newSize === tileSize) return;
+        // Scale and Translate
+        lightCtx.scale(scale, scale);
+        lightCtx.translate(-camX, -camY);
+        
+        // Use 'screen' to ADD light to our ambient gray base
+        lightCtx.globalCompositeOperation = 'screen'; 
 
-      // Apply it
-      tileSize = newSize;
-
-      // Re‐clamp camera so no gaps appear
-      camX = Math.max(0, Math.min(camX, mapCols * tileSize - canvas.width));
-      camY = Math.max(0, Math.min(camY, mapRows * tileSize - canvas.height));
-
-      // **NEW: Clear & rebuild both caches at the new tileSize**
-      tileCache     = {};
-      animTileCache = {};
-      buildStaticTileCache();
-      buildAnimatedCache();
-    });
-
-    window.addEventListener("keydown", e => {
-      // 1) mark it pressed for movement
-      keys[e.key] = true;
-      SystematicAPI.trigger("onKeyDown", e.key, e);
-
-
-      // 2) then your shortcuts
-      if ((e.ctrlKey||e.metaKey) && e.key === 'z') {
-        e.preventDefault(); undo();
-      }
-      if ((e.ctrlKey||e.metaKey) && e.key === 'y') {
-        e.preventDefault(); redo();
-      }
-    });
-    window.addEventListener("keyup",   e => {;
-      keys[e.key] = false;
-      SystematicAPI.trigger("onKeyUp", e.key, e);
-    });
-
-    function encodeLevels(levels) {
-      const json = JSON.stringify(levels);
-      return LZString.compressToEncodedURIComponent(json);
-    }
-
-    // decompress from the URL back into a JS array (or null on failure)
-    function decodeLevels(hash) {
-      try {
-        const json = LZString.decompressFromEncodedURIComponent(hash);
-        return JSON.parse(json);
-      } catch {
-        return null;
-      }
-    }
-
-    function updateURLState() {
-      const hash = encodeLevels(levels);
-      history.replaceState(null, "", "#" + hash);
-    }
-
-    // Only darken valid 6-digit hex colors; pass others through
-    function deriveDark(palette) {
-      return palette.map(color => {
-        if (color.startsWith("rgba")) return color; // keep transparency as-is
-        const rgb = hexToRgb(color);
-        const darkened = {
-          r: Math.floor(rgb.r * 0.5),
-          g: Math.floor(rgb.g * 0.5),
-          b: Math.floor(rgb.b * 0.5)
-        };
-        return `rgb(${darkened.r},${darkened.g},${darkened.b})`;
-      });
-    }
-
-    function hexToRgb(hex) {
-      hex = hex.replace("#", "");
-      const bigint = parseInt(hex, 16);
-      return {
-        r: (bigint >> 16) & 255,
-        g: (bigint >> 8) & 255,
-        b: bigint & 255
-      };
-    }
-
-    function placeTextTile(e) {
-      const x = Math.floor((e.offsetX + camX) / tileSize);
-      const y = Math.floor((e.offsetY + camY) / tileSize);
-      if (x < 0 || y < 0 || x >= mapCols || y >= mapRows) return;
-
-      const txt = prompt(`Enter text to place at (${x},${y}):`, "");
-      if (txt === null) return;  // user cancelled
-
-      // set the tile
-      levels[currentLevel][y][x][currentLayer] = TEXT_TILE_ID;
-
-      // save its text
-      tilePropsData[`${currentLevel}-${x}-${y}-${currentLayer}`] = { text: txt };
-    }
-
-    const undoStack = [];
-    const redoStack = [];
-    const MAX_HISTORY = 100;  // cap to save memory
-
-    function paintAt(e) {
-      const x = Math.floor((e.offsetX + camX) / tileSize);
-      const y = Math.floor((e.offsetY + camY) / tileSize);
-      if (x<0||y<0||x>=mapCols||y>=mapRows) return;
-      const layer   = currentLayer;
-      const oldTile = level[y][x][layer];
-      const newTile = currentTile;
-      if (oldTile===newTile) return;
-
-      undoStack.push({ x,y,layer,oldTile,newTile });
-      if (undoStack.length>MAX_HISTORY) undoStack.shift();
-      redoStack.length=0;
-
-      // apply
-      level[y][x][layer] = newTile;
-      updateURLState();
-    }
-
-    function undo() {
-      if (!undoStack.length) return;
-      const action = undoStack.pop();
-      redoStack.push(action);
-
-      if (action.type === 'prop') {
-        tilePropsData[action.key] = action.oldProps;
-        redrawTilePropsUIIfOpen();  // optional
-      } else {
-        const {x,y,layer, oldTile} = action;
-        level[y][x][layer] = oldTile;
-      }
-    }
-
-    function redo() {
-      if (!redoStack.length) return;
-      const action = redoStack.pop();
-      undoStack.push(action);
-
-      if (action.type === 'prop') {
-        tilePropsData[action.key] = action.data;
-        redrawTilePropsUIIfOpen();
-      } else {
-        const {x,y,layer, newTile} = action;
-        level[y][x][layer] = newTile;
-      }
-    }
-
-    const SPIKE_BASE_ID = 28;
-    const spikeFrames   = [28, 29, 30, 29, 29];
-    const spikeHold     = 6;      // how many frames each anim step lasts
-
-    let globalTick     = 0;       // increments every drawLevel call
-
-    let darkPalette = deriveDark(palette);
-
-    let tileCache       = {};      // holds *all* non-animated, static tile images
-    let animTileCache   = {};      // holds only animated frames for animated IDs
-    let lastCacheUpdate   = 0;       // timestamp of last anim-cache rebuild
-    const ANIM_FPS         = 10;
-    const ANIM_INTERVAL   = 1000 / ANIM_FPS;  // 50 ms
-
-    // 1) Build your static cache once at startup:
-    function buildStaticTileCache() {
-      for (let id in sprites) {
-        const sprArr = sprites[id];
-        if (!sprArr?.length) continue;
-
-        // skip animated-base IDs (e.g. SPIKE_BASE_ID)
-        if (Number(id) === SPIKE_BASE_ID) continue;
-        for (let layer = 0; layer < layerCount; layer++) {
-          // flags can stay empty string if none
-          buildTileCanvas(id, 0, layer, '', tileCache);
+        // 1. Clip to the Visible Area (The "Not Shadow" zone)
+        lightCtx.save();
+        lightCtx.beginPath();
+        if(polygon.length > 0) { 
+            lightCtx.moveTo(polygon[0].x, polygon[0].y); 
+            for(let i = 1; i < polygon.length; i++) lightCtx.lineTo(polygon[i].x, polygon[i].y);
         }
-      }
+        lightCtx.closePath();
+        lightCtx.clip();
+
+        // 2. Draw Light Gradient
+        const g = lightCtx.createRadialGradient(light.x, light.y, 0, light.x, light.y, light.radius);
+        g.addColorStop(0, hexToRgba(light.color, light.intensity));
+        g.addColorStop(1, hexToRgba(light.color, 0));
+        lightCtx.fillStyle = g;
+        
+        // Draw the light
+        lightCtx.fillRect(light.x - light.radius, light.y - light.radius, light.radius*2, light.radius*2);
+        
+        lightCtx.restore(); // End Clip
+        lightCtx.restore(); // End Transform
     }
 
-    // 2) Build or rebuild your animated frames at up to 20 FPS:
-    function buildAnimatedCache() {
-      animTileCache = {};  // reset
-      
-      // rebuild only the spike frames (or any other animated IDs)
-      for (let f = 0; f < spikeFrames.length; f++) {
-        const id = spikeFrames[f];
-        buildTileCanvas(id, /*frame*/f, /*layer*/0, /*flags*/'', animTileCache);
-      }
-      
-      lastCacheUpdate = performance.now();
-    }
+    // Composite Light Map onto Game
+    ctx.save();
 
-    // track versions per layer
-    let paletteVersions = [0, 0];  // index 0 for layer0, index1 for layer1
+    // Enable smoothing to blur the low-res pixels slightly
+    ctx.imageSmoothingEnabled = true;
+    
+    // SHADOW STRENGHT CONTROL:
+    // MULTIPLY: 
+    // White pixels (Light) * Game = Normal Game Brightness
+    // Gray pixels (Ambient) * Game = Darkened Game (Visible Shadows)
+    // Black pixels * Game = Invisible (Pitch Black)
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.globalAlpha = 0.2;
+    ctx.drawImage(lightCanvas, 0, 0, canvas.width, canvas.height);
+    
+    // Additive Bloom/Glow Post Effect
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.3;
+    ctx.drawImage(lightCanvas, 0, 0, canvas.width, canvas.height);
+    ctx.restore();
 
-    // assume you have two palette arrays, e.g.:
-    // layer 0 uses darkPalette, layer 1 uses palette
-    function onPaletteChangeForLayer(layerIndex, newArr) {
-      if (layerIndex === 0) {
-        darkPalette = deriveDark(newArr);
-      } else if (layerIndex === 1) {
-        palette = newArr;
-      } else {
-        console.warn("unexpected layer", layerIndex);
-        return;
-      }
+    drawTileReflections(activeLights, camX, camY, scale);
+}
 
-      // bump only that layer’s version
-      paletteVersions[layerIndex]++;
+function drawTileReflections(activeLights, camX, camY, scale) {
+    const buffer = 1;
+    const startCol = Math.max(0, Math.floor(camX / tileSize) - buffer);
+    const endCol = Math.min(mapCols, Math.ceil((canvas.width / scale + camX) / tileSize) + buffer);
+    const startRow = Math.max(0, Math.floor(camY / tileSize) - buffer);
+    const endRow = Math.min(mapRows, Math.ceil((canvas.height / scale + camY) / tileSize) + buffer);
 
-      // throw away only the canvases for that layer
-      // filter out any keys matching `:<layerIndex>:`  
-      Object.keys(tileCache).forEach(key => {
-        if (key.split(':')[2] == layerIndex) {
-          delete tileCache[key];
-        }
-      });
-      Object.keys(animTileCache).forEach(key => {
-        if (key.split(':')[2] == layerIndex) {
-          delete animTileCache[key];
-        }
-      });
+    lightCtx.save();
+    lightCtx.globalCompositeOperation = 'lighter';
+    // Use scale to match the low-res light map
+    lightCtx.scale(scale, scale);
+    lightCtx.translate(-camX, -camY);
 
-      // rebuild *just* that layer’s canvases
-      rebuildLayerInStaticCache(layerIndex);
-      rebuildLayerInAnimCache(layerIndex);
-    }
+    const edgeWidth = 2; // Thickness of the reflection line
 
-    function rebuildLayerInStaticCache(layerIndex) {
-      for (let id in sprites) {
-        // skip animated bases if needed
-        for (let frame = 0; frame < sprites[id].length; frame++) {
-          buildTileCanvas(id, frame, layerIndex, /*flags*/"", tileCache);
-          // if you only ever use frame 0 in static cache, drop the frame loop
-        }
-      }
-    }
+    for (let y = startRow; y < endRow; y++) {
+        for (let x = startCol; x < endCol; x++) {
+            // 1. Is this tile solid?
+            if (!isBlocking(x, y)) continue;
 
-    function rebuildLayerInAnimCache(layerIndex) {
-      // same idea, but only for your animatable IDs on that layer
-      // e.g. if only spikes animate on layer0:
-      if (layerIndex === 0) {
-        animTileCache = {};    // or just delete layer-0 entries as above
-        buildAnimatedCache();  // which will re-bake layer0’s frames
-      }
-    }
+            // 2. Which edges are exposed to air?
+            const top    = !isBlocking(x, y - 1);
+            const bottom = !isBlocking(x, y + 1);
+            const left   = !isBlocking(x - 1, y);
+            const right  = !isBlocking(x + 1, y);
 
-    // 3) A helper to bake *one* tile into your chosen cache:
+            // 3. Skip if it's an interior tile (no exposed edges)
+            if (!(top || bottom || left || right)) continue;
 
-    // (1) Helper to bake *one* tile into a cache object:
-    function buildTileCanvas(id, frame, layer, flags, cacheObj) {
-      // ensure id is a string key
-      const keyId = String(id);
-      const sprArr = sprites[keyId];
-      if (!sprArr) {
-        console.warn(`buildTileCanvas: no sprites[${keyId}]`);
-        return;
-      }
-      // clamp frame
-      if (frame >= sprArr.length || frame < 0) {
-        console.warn(`buildTileCanvas: sprites[${keyId}] has no frame ${frame}, using frame 0`);
-        frame = 0;
-      }
-      const entry = sprArr[frame];
-      if (!entry || !entry.data) {
-        console.warn(`buildTileCanvas: sprites[${keyId}][${frame}].data is missing`);
-        return;
-      }
+            const tx = x * tileSize;
+            const ty = y * tileSize;
+            const centerX = tx + tileSize / 2;
+            const centerY = ty + tileSize / 2;
 
-      const sprite    = entry.data;
-      // pick the correct palette for this layer
-      const pal       = layer === 0 ? darkPalette : palette;
-      const dim       = sprite.length;
-      const pixelSize = Math.floor(tileSize / dim) || 1;
-      const offset    = Math.floor((tileSize - dim*pixelSize)/2);
+            for (let light of activeLights) {
+                // Distance check for performance
+                const dx = light.x - centerX;
+                const dy = light.y - centerY;
+                const distSq = dx * dx + dy * dy;
+                const radSq = light.radius * light.radius;
 
-      // create an offscreen canvas
-      const cvs = document.createElement('canvas');
-      cvs.width  = cvs.height = tileSize;
-      const cx   = cvs.getContext('2d');
+                if (distSq < radSq) {
+                    const dist = Math.sqrt(distSq);
+                    const intensity = (1 - dist / light.radius) * light.intensity * 0.5;
+                    lightCtx.fillStyle = hexToRgba(light.color, intensity);
 
-      for (let y = 0; y < dim; y++) {
-        for (let x = 0; x < dim; x++) {
-          const ci  = sprite[y][x];
-          if (ci < 0) continue;
-          const raw = pal[ci];
-          if (!raw || raw === "#00000000" || raw === "rgba(0,0,0,0)") continue;
-          cx.fillStyle = raw;
-          cx.fillRect(
-            offset + x*pixelSize,
-            offset + y*pixelSize,
-            pixelSize, pixelSize
-          );
-        }
-      }
-
-      const cacheKey = `${keyId}:${frame}:${layer}:${flags}`;
-      cacheObj[cacheKey] = cvs;
-    }
-
-    // 4) Kick it all off:
-    buildStaticTileCache();
-    buildAnimatedCache();  // initial build
-
-    // 5) In your game loop (drawLevel), before drawing, check if it’s time to rebuild anim frames:
-    function maybeUpdateAnimatedCache() {
-      const now = performance.now();
-      if (now - lastCacheUpdate >= ANIM_INTERVAL) {
-        buildAnimatedCache();
-      }
-    }
-
-    function drawLevel() {
-      globalTick++;
-      maybeUpdateAnimatedCache();
-
-      const frameIndex = Math.floor(globalTick / spikeHold) % spikeFrames.length;
-      ctx.fillStyle = palette[6];
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      const camXi = Math.round(camX), camYi = Math.round(camY);
-
-      const startCol = Math.floor(camX / tileSize),
-            endCol   = Math.ceil ((camX + canvas.width ) / tileSize),
-            startRow = Math.floor(camY / tileSize),
-            endRow   = Math.ceil ((camY + canvas.height) / tileSize);
-
-      const minCol = Math.max(0, startCol),
-            maxCol = Math.min(mapCols, endCol),
-            minRow = Math.max(0, startRow),
-            maxRow = Math.min(mapRows, endRow);
-
-      for (let y = minRow; y < maxRow; y++) {
-        for (let x = minCol; x < maxCol; x++) {
-          for (let layer = 0; layer < layerCount; layer++) {
-            let id = levels[currentLevel][y][x][layer];
-
-            // SPIKE-TILE HANDLING
-            if (id === SPIKE_BASE_ID) id = spikeFrames[frameIndex];
-
-            // TEXT-TILE HANDLING
-            if (id === TEXT_TILE_ID) {
-              // build the props-lookup key
-              const propKey = `${currentLevel}-${x}-${y}-${layer}`;
-              const txt     = tilePropsData[propKey]?.text || "";
-
-              // measure & draw background
-              const fontSize = Math.floor(tileSize / 3),
-                    padding  = 4;
-              ctx.font      = `${fontSize}px sans-serif`;
-              const textW   = ctx.measureText(txt).width;
-              const extraW  = Math.max(0, textW + padding*2 - tileSize);
-              const bgX     = x*tileSize - camXi - extraW/2,
-                    bgW     = tileSize + extraW;
-              ctx.fillStyle = "#222";
-              ctx.fillRect(bgX, y*tileSize - camYi, bgW, tileSize);
-
-              // draw centered text
-              ctx.fillStyle    = "#fff";
-              ctx.textAlign    = "center";
-              ctx.textBaseline = "middle";
-              ctx.fillText(
-                txt,
-                x*tileSize - camXi + tileSize/2,
-                y*tileSize - camYi + tileSize/2
-              );
-              continue;  // skip sprite cache drawing
+                    // 4. Only draw the specific edges that are exposed
+                    // Top Edge
+                    if (top && light.y < ty) {
+                        lightCtx.fillRect(tx, ty, tileSize, edgeWidth);
+                    }
+                    // Bottom Edge
+                    if (bottom && light.y > ty + tileSize) {
+                        lightCtx.fillRect(tx, ty + tileSize - edgeWidth, tileSize, edgeWidth);
+                    }
+                    // Left Edge
+                    if (left && light.x < tx) {
+                        lightCtx.fillRect(tx, ty, edgeWidth, tileSize);
+                    }
+                    // Right Edge
+                    if (right && light.x > tx + tileSize) {
+                        lightCtx.fillRect(tx + tileSize - edgeWidth, ty, edgeWidth, tileSize);
+                    }
+                }
             }
-
-            // 2) SPRITE TILES (cached)
-            const frame = 0;      // only spikes animate, others use frame 0
-            const flags = "";     // no special flags here
-            const cacheKey = `${id}:${frame}:${layer}:${flags}`;
-            const tileImg  = (id === SPIKE_BASE_ID ? animTileCache : tileCache)[cacheKey];
-
-            if (tileImg) {
-              ctx.drawImage(
-                tileImg,
-                x * tileSize - camXi,
-                y * tileSize - camYi,
-                tileSize, tileSize
-              );
-            }
-          }
         }
-      }
     }
+    lightCtx.restore();
+}
 
-    // --- DRAW SPRITE UTILITY ---
-    function drawSprite(data, x, y) {
-      const spriteDim     = data.length;
-      const pixelSize     = Math.floor(tileSize / spriteDim) || 1;
-      const spritePixelSz = spriteDim * pixelSize;
-      const offset        = Math.floor((tileSize - spritePixelSz) / 2);
+function drawLevel() {
+  globalTick++;
+  if (performance.now() - lastCacheUpdate >= 1000/CONFIG.ANIM_FPS) buildAnimatedCache();
 
-      for (let row = 0; row < spriteDim; row++) {
-        for (let col = 0; col < spriteDim; col++) {
-          const ci = data[row][col];
-          if (ci < 0) continue;
-          ctx.fillStyle = palette[ci] || "#000";
-          ctx.fillRect(
-            x + offset + col * pixelSize,
-            y + offset + row * pixelSize,
-            pixelSize,
-            pixelSize
-          );
+  const frameIndex = Math.floor(globalTick / spikeHold) % spikeFrames.length;
+  ctx.fillStyle = palette[7]; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const camXi = Math.round(camX), camYi = Math.round(camY);
+  const startCol = Math.max(0, Math.floor(camX / tileSize)), endCol = Math.min(mapCols, Math.ceil ((camX + canvas.width ) / tileSize));
+  const startRow = Math.max(0, Math.floor(camY / tileSize)), endRow = Math.min(mapRows, Math.ceil ((camY + canvas.height) / tileSize));
+
+  for (let y = startRow; y < endRow; y++) {
+    for (let x = startCol; x < endCol; x++) {
+      for (let layer = 0; layer < layerCount; layer++) {
+        let id = levels[currentLevel][y][x][layer];
+        if (id === SPIKE_BASE_ID) id = spikeFrames[frameIndex];
+        if (id === TEXT_TILE_ID) {
+          const txt = tilePropsData[`${currentLevel}-${x}-${y}-${layer}`]?.text || "";
+          const fontSize = Math.floor(tileSize / 3), textW = ctx.measureText(txt).width, extraW = Math.max(0, textW + 8 - tileSize);
+          ctx.fillStyle = "#222"; ctx.fillRect(x*tileSize - camXi - extraW/2, y*tileSize - camYi, tileSize + extraW, tileSize);
+          ctx.fillStyle = "#fff"; ctx.font = `${fontSize}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          ctx.fillText(txt, x*tileSize - camXi + tileSize/2, y*tileSize - camYi + tileSize/2);
+          continue;
         }
+        const tileImg = (id === SPIKE_BASE_ID ? animTileCache : tileCache)[`${id}:0:${layer}:`];
+        if (tileImg) ctx.drawImage(tileImg, x * tileSize - camXi, y * tileSize - camYi, tileSize, tileSize);
       }
     }
+  }
+}
 
-    function drawPlayer() {
-      drawSprite(player.sprite, player.x - camX, player.y - camY);
+function drawSprite(data, x, y) {
+  const spriteDim = data.length, pixelSize = Math.floor(tileSize / spriteDim) || 1, offset = Math.floor((tileSize - spriteDim*pixelSize) / 2);
+  for (let row = 0; row < spriteDim; row++) {
+    for (let col = 0; col < spriteDim; col++) {
+      const ci = data[row][col];
+      if (ci < 0) continue;
+      ctx.fillStyle = palette[ci] || "#000";
+      ctx.fillRect(x + offset + col * pixelSize, y + offset + row * pixelSize, pixelSize, pixelSize);
     }
+  }
+}
+function drawPlayer() { drawSprite(player.sprite, player.x - camX, player.y - camY); }
 
-    // --- DRAW GRID ---
-    function drawGrid() {
-      ctx.strokeStyle = "#fff";
-      ctx.lineWidth = 1;
-      for (let x = 0; x < mapCols + 25; x++) {
-        ctx.beginPath();
-        ctx.moveTo(x * tileSize - camX, 0);
-        ctx.lineTo(x * tileSize - camX, canvas.height);
-        ctx.stroke();
-      }
-      for (let y = 0; y < mapRows; y++) {
-        ctx.beginPath();
-        ctx.moveTo(0, y * tileSize - camY);
-        ctx.lineTo(canvas.width, y * tileSize - camY);
-        ctx.stroke();
-      }
-    }
+function drawGrid() {
+  ctx.strokeStyle = "#fff"; ctx.lineWidth = 1;
+  for (let x = 0; x < mapCols + 25; x++) { ctx.beginPath(); ctx.moveTo(x * tileSize - camX, 0); ctx.lineTo(x * tileSize - camX, canvas.height); ctx.stroke(); }
+  for (let y = 0; y < mapRows; y++) { ctx.beginPath(); ctx.moveTo(0, y * tileSize - camY); ctx.lineTo(canvas.width, y * tileSize - camY); ctx.stroke(); }
+}
 
-    // Camera smoothing parameters
-    let camTargetX = 0, camTargetY = 0;
-    const CAMERA_LERP = 0.12; // Lower = more gentle, 0.1–0.2 is good
+function moveCamera() {
+  if (mode === "play") {
+    let camTargetX = Math.max(0, Math.min(levels[0][0].length * tileSize - canvas.width, player.x - canvas.width/2 + player.width/2));
+    let camTargetY = Math.max(0, Math.min(mapRows * tileSize - canvas.height, player.y - canvas.height/2 + player.height/2));
 
-    function moveCamera() {
-      if (mode === "play") {
-        // Target: center player
-        camTargetX = Math.max(0, Math.min(levels[0][0].length * tileSize - canvas.width,
-          player.x - canvas.width/2 + player.width/2));
-        camTargetY = Math.max(0, Math.min(mapRows * tileSize - canvas.height,
-          player.y - canvas.height/2 + player.height/2));
+    // almost pixel perfect camera smoothing, each game pixel is 3 pixels on the canvas, so we round to nearest multiple of 3 for that satisfying crispness, use CONFIG.CAMERA_LERP to control the speed of the camera catching up to the player (0.1 = 10% of the distance per frame)
+    camX = Math.round((camX + (camTargetX - camX) * CONFIG.CAMERA_LERP * 0.5) / 1.5) * 1.5; 
+    camY = Math.round((camY + (camTargetY - camY) * CONFIG.CAMERA_LERP * 0.5) / 1.5) * 1.5;
 
-        // Smoothly interpolate camX/camY toward camTargetX/camTargetY
-        camX += (camTargetX - camX) * CAMERA_LERP * 0.5;
-        camY += (camTargetY - camY) * CAMERA_LERP * 0.25;
-      } else {
-        // Manual camera movement in edit mode
-        if (keys["ArrowLeft"] || keys["a"]) camX -= 10;
-        if (keys["ArrowRight"] || keys["d"]) camX += 10;
-        if (keys["ArrowUp"] || keys["w"]) camY -= 10;
-        if (keys["ArrowDown"] || keys["s"]) camY += 10;
+  } else {
+    if (keys["ArrowLeft"] || keys["a"]) camX -= 10;
+    if (keys["ArrowRight"] || keys["d"]) camX += 10;
+    if (keys["ArrowUp"] || keys["w"]) camY -= 10;
+    if (keys["ArrowDown"] || keys["s"]) camY += 10;
+    camX = Math.max(0, Math.min(camX, mapCols * tileSize - canvas.width));
+    camY = Math.max(0, Math.min(camY, mapRows * tileSize - canvas.height));
+  }
+}
 
-        // Snap after movement
-        [camX, camY] = snapCamera(camX, camY);
-
-        // Clamp camera
-        camX = Math.max(0, Math.min(camX, mapCols * tileSize - canvas.width));
-        camY = Math.max(0, Math.min(camY, mapRows * tileSize - canvas.height));
-      }
-    }
-
-    function snapCamera(x, y) {
-      const snapSize = tileSize / 4;
-      x = Math.round(x / snapSize) * snapSize;
-      y = Math.round(y / snapSize) * snapSize;
-      return [x, y];
-    }
+function saveLevel() {
+  const json = JSON.stringify(levels);
+  localStorage.setItem(CONFIG.SAVED_KEY, json);
+  const blob = new Blob([json], { type: "application/json" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "levels.json";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  alert("Levels saved! ✅");
+}
 
     // --- SAVE / LOAD & GENERATE ---
     function saveAllLevels() {
@@ -1598,741 +1175,283 @@ const originalBuiltInCount = sprites.length;
       });
     }
 
-    // Always read from the active level:
-    function getCell(col, row, layer) {
-      // bounds check
-      if (col < 0 || col >= mapCols || row < 0 || row >= mapRows) return 0;
-      return levels[currentLevel][row][col][layer];
-    }
+function getCell(col, row, layer) { if (col < 0 || col >= mapCols || row < 0 || row >= mapRows) return 0; return levels[currentLevel][row][col][layer]; }
+function isSolid(px, py) { const id = getCell(Math.floor(px / tileSize), Math.floor(py / tileSize), 1); return id !== 0 && id !== 27; }
+function isOneWayTile(px, py) { return getCell(Math.floor(px / tileSize), Math.floor(py / tileSize), 1) === 27; }
+function isBounceTile(px, py) { return getCell(Math.floor(px / tileSize), Math.floor(py / tileSize), 1) === 23; }
 
-    // --- SOLID TILES (terrain layer = 1) ---
-    function isSolid(px, py) {
-      const col = Math.floor(px / tileSize);
-      const row = Math.floor(py / tileSize);
-      const id  = getCell(col, row, 1);  
+function animateTileOnce(layer, x, y, frames, fps) {
+  const key = x + "," + y;
+  if (animateTileOnce[key]) return;
+  animateTileOnce[key] = true;
+  let idx = 0;
+  function step() {
+    if (idx < frames.length) { level[y][x][layer] = frames[idx++]; setTimeout(step, 1000/fps); }
+    else delete animateTileOnce[key];
+  }
+  step();
+}
 
-      // 0 = empty, 27 = one-way platform → both non-solid
-      if (id === 0 || id === 27) return false;
-      return true;
-    }
+function togglePlaytest() {
+  if (mode === "edit") { mode = "play"; player.x = 100; player.y = 100; player.vx = player.vy = 0; }
+  else mode = "edit";
+}
 
-    // --- ONE-WAY PLATFORM (ID 27 on layer 1) ---
-    function isOneWayTile(px, py) {
-      const col = Math.floor(px / tileSize);
-      const row = Math.floor(py / tileSize);
-      return getCell(col, row, 1) === 27;
-    }
+let lastTime = performance.now();
+function update(now = performance.now()) {
+  let dt = (now - lastTime) / 1000; lastTime = now; dt = Math.min(dt, 1/60);
+  
+  SystematicAPI.trigger("onPreInput", player, keys);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  SystematicAPI._updateParticles(dt);
+  
+  const gravity = CONFIG.GRAVITY_TILES * tileSize, jumpPower = CONFIG.JUMP_TILES * tileSize, moveSpeed = CONFIG.MOVE_TILES * tileSize;
+  const N = player.spriteDim, pixelSize = tileSize / N; player.width = N * pixelSize; player.height = N * pixelSize;
 
-    // --- BOUNCE TILE (ID 23 on layer 1) ---
-    function isBounceTile(px, py) {
-      const col = Math.floor(px / tileSize);
-      const row = Math.floor(py / tileSize);
-      return getCell(col, row, 1) === 23;
-    }
+if (mode === "play") {
+    // 1. Reset states for the frame
+    const wasOnWallRight = player.onWallRight;
+    const wasOnWallLeft = player.onWallLeft;
+    player.onWallRight = false;
+    player.onWallLeft = false;
+    player.onGround = false;
 
-    // --- SPIKE TILE ---
-    function isSpikeTile(px, py) {
-      const col = Math.floor(px / tileSize),
-            row = Math.floor(py / tileSize);
-      if (col < 0 || col >= mapCols || row < 0 || row >= mapRows) return false;
-      return level[row][col][1 || 2] === 28;
-    }
+    // Input
+    if (keys["a"] || keys["ArrowLeft"]) player.vx = -moveSpeed; 
+    else if (keys["d"] || keys["ArrowRight"]) player.vx = moveSpeed; 
+    else player.vx = 0;
 
-    // ANIMATIONS
-    function animateTileOnce(layer, x, y, frames, fps) {
-      // — default arguments —
-      if (!Array.isArray(frames))   frames = [23, 24, 23];
-      if (typeof fps === "undefined") fps = 4;
+    // --- Horizontal Movement & Resolution ---
+    player.x += player.vx;
+    SystematicAPI.trigger("onPostInput", player, keys);
 
-      // — init animation registry —
-      if (!animateTileOnce.activeAnims) animateTileOnce.activeAnims = {};
-      const key = x + "," + y;
-
-      // — bounds & concurrency check —
-      if (
-        y < 0 || y >= level.length ||
-        x < 0 || x >= level[0].length ||
-        animateTileOnce.activeAnims[key]
-      ) return;
-
-      animateTileOnce.activeAnims[key] = true;
-      const frameDuration = 1000 / fps;
-      let idx = 0;
-
-      function step() {
-        // if we still have frames left, draw and schedule next…
-        if (idx < frames.length) {
-          level[y][x][layer] = frames[idx++];
-          setTimeout(step, frameDuration);
-        } else {
-          // …otherwise clean up
-          delete animateTileOnce.activeAnims[key];
-        }
-      }
-
-      // kick it off
-      step();
-    }
-
-    function animateTileLoop(layer, x, y, frames, fps) {
-      const frameDuration = 1000 / fps;
-      let idx = 0;
-      const key = x + "," + y;
-
-      function step() {
-        // draw this frame
-        level[y][x][layer] = frames[idx];
-        idx = (idx + 1) % frames.length;
-        // schedule next
-        setTimeout(step, frameDuration);
-      }
-
-      // kick off
-      step();
-    }
-
-    // --- MODE SWITCH ---
-    function togglePlaytest() {
-      if (mode === "edit") {
-        // switch into play mode
-        mode = "play";
-        // reset player spawn
-        player.x = 100; 
-        player.y = 100;
-        player.vx = player.vy = 0;
-      } else {
-        // back to edit mode
-        mode = "edit";
-      }
-    }
-
-    let lastTime = performance.now();
-    function update(now = performance.now()) {
-      let dt = (now - lastTime) / 1000;  // seconds
-      lastTime = now;
-      // Cap dt to avoid running too fast or too slow
-      dt = Math.min(dt, 1/60); // Cap to max 33ms per frame (30 FPS logic)
-
-      SystematicAPI.trigger("onPreInput", player, keys);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      SystematicAPI._updateParticles(dt);
-      const gravity   = gravityTiles * tileSize;
-      const jumpPower = jumpTiles  * tileSize;
-      const moveSpeed = moveTiles  * tileSize;
-      const N         = player.spriteDim;
-      const pixelSize = tileSize / N;
-      player.width    = N * pixelSize;
-      player.height   = N * pixelSize;
-
-      if (mode === "play") {
-        player._touchingRightPrev = player._touchingRightPrev || false;
-        player._touchingLeftPrev  = player._touchingLeftPrev  || false;
-
-        let touchingRight = false;
-        let touchingLeft  = false;
-        // Horizontal
-        if      (keys["a"] || keys["ArrowLeft"])  player.vx = -moveSpeed;
-        else if (keys["d"] || keys["ArrowRight"]) player.vx =  moveSpeed;
-        else                                      player.vx =  0;
-
-        // Jump
-        if ((keys["w"] || keys["ArrowUp"]) && player.onGround) {
-          player.vy       = jumpPower;
-          player.onGround = false;
-          SystematicAPI.trigger('onPlayerJump', player);
-        }
-
-        SystematicAPI.trigger("onPostInput", player, keys);
-
-        player.x  += player.vx;
-        const nextX = player.x + player.vx;
-        const topY   = player.y;
-        const bottomY = player.y + player.height - 1;
-
-        // Check horizontal collisions only if moving horizontally
-        if (player.vx !== 0) {
-          if (player.vx > 0) {
-            // Moving right: check right edge
-            const rightEdge = nextX + player.width;
-            for (let y = topY; y <= bottomY; y += tileSize/2) {
-              if (isSolid(rightEdge, y)) {
-                const col = Math.floor(rightEdge / tileSize);
-                player.x = col * tileSize - player.width;
-                const tx = Math.floor((player.x + player.width/2) / tileSize);
-                const ty = Math.floor((player.y + player.height + 1) / tileSize);
-                // use triggerCancelable instead of peeking at listeners
-                const keepVx = SystematicAPI.triggerCancelable(
-                  "prePlayerTouchWallRight",
-                  player, tx, ty, /*layer=*/1
-                );
-                if (!keepVx) {
-                  player.vx = 0;
-                }
-
-                // now fire the normal touch hook
-                SystematicAPI.trigger("onPlayerTouchWallRight", player, tx, ty, 1);
-                touchingRight = true;
-                break;
-              }
+    // Only snap X if we are actually moving into a wall
+    if (player.vx > 0) {
+        if (isSolid(player.x + player.width, player.y + 2) || isSolid(player.x + player.width, player.y + player.height - 2)) {
+            const tx = Math.floor((player.x + player.width) / tileSize);
+            if (SystematicAPI.trigger("prePlayerTouchWallRight", player, tx, 0) !== true) {
+                player.x = tx * tileSize - player.width;
+                player.vx = 0;
             }
-          } else {
-            // Moving left: check left edge
-            const leftEdge = nextX;
-            for (let y = topY; y <= bottomY; y += tileSize/2) {
-              if (isSolid(leftEdge, y)) {
-                const col = Math.floor(leftEdge / tileSize);
-                player.x = (col + 1) * tileSize;
-                const tx = Math.floor((player.x + player.width/2) / tileSize);
-                const ty = Math.floor((player.y + player.height + 1) / tileSize);
-                // use triggerCancelable for the left wall too
-                const keepVx = SystematicAPI.triggerCancelable(
-                  "prePlayerTouchWallLeft",
-                  player, tx, ty, /*layer=*/1
-                );
-                if (!keepVx) {
-                  player.vx = 0;
-                }
-
-                // then fire the normal touch hook
-                SystematicAPI.trigger("onPlayerTouchWallLeft", player, tx, ty, 1);
-                touchingLeft = true;
-                break;
-              }
+        }
+    } else if (player.vx < 0) {
+        if (isSolid(player.x - 1, player.y + 2) || isSolid(player.x - 1, player.y + player.height - 2)) {
+            const tx = Math.floor((player.x - 1) / tileSize);
+            if (SystematicAPI.trigger("prePlayerTouchWallLeft", player, tx, 0) !== true) {
+                player.x = (tx + 1) * tileSize;
+                player.vx = 0;
             }
-          }
-        } else {
-          player.x = nextX;
         }
-
-        // now fire the “stop touching” events
-        if (!touchingRight && player._touchingRightPrev) {
-          const tx = Math.floor((player.x + player.width/2) / tileSize);
-          const ty = Math.floor((player.y + player.height + 1) / tileSize);
-          SystematicAPI.trigger("onPlayerStopTouchWallRight", player, tx, ty, 1);
-        }
-        if (!touchingLeft && player._touchingLeftPrev) {
-          const tx = Math.floor((player.x + player.width/2) / tileSize);
-          const ty = Math.floor((player.y + player.height + 1) / tileSize);
-          SystematicAPI.trigger("onPlayerStopTouchWallLeft", player, tx, ty, 1);
-        }
-
-        // save for next frame
-        player._touchingRightPrev = touchingRight;
-        player._touchingLeftPrev  = touchingLeft;
-
-        // Gravity
-        player.vy += gravity;
-        player.y  += player.vy;
-
-        // Ceiling
-        if (player.vy < 0) {
-          const nextHeadY = player.y;
-          if (isSolid(player.x, nextHeadY) || isSolid(player.x + player.width, nextHeadY)) {
-            // determine which ceiling tile you’d be hitting
-            const tileHY = Math.floor(nextHeadY / tileSize);
-            const tx     = Math.floor((player.x + player.width/2) / tileSize);
-            const ty     = tileHY;
-
-            // — pre-hook: if any listener returns true, skip snapping
-            const keepGoing = SystematicAPI.triggerCancelable(
-              "prePlayerTouchCeiling",
-              player, tx, ty, /*layer=*/1
-            );
-
-            if (keepGoing) {
-              // NORMAL behavior
-              player.vy = 0;
-              player.y  = (tileHY + 1) * tileSize;
-              SystematicAPI.trigger("onPlayerTouchCeiling", player, tx, ty, /*layer=*/1);
-            }
-
-            // if keepGoing===false, we do nothing here: vy stays as-is
-          }
-        }
-
-        SystematicAPI.trigger("onPostPhysicsCollision", player, keys);
-
-        // ── GROUND & ONE‐WAY PLATFORM LOGIC ─────────
-        const feetY     = player.y + player.height;
-        const nextFeetY = feetY + player.vy;
-
-        // inset the X’s so you’re sampling well inside the sprite
-        const leftX     = player.x + 1;
-        const rightX    = player.x + player.width - 1;
-
-        // check tiles *at* nextFeetY
-        const belowLeftSolid   = isSolid(leftX,  nextFeetY);
-        const belowRightSolid  = isSolid(rightX, nextFeetY);
-        const belowLeftOneWay  = isOneWayTile(leftX,  nextFeetY);
-        const belowRightOneWay = isOneWayTile(rightX, nextFeetY);
-
-        // grab the tile‐coordinates below your feet
-        const tileRow = Math.floor(nextFeetY / tileSize);
-        const tileLX  = Math.floor(leftX    / tileSize);
-        const tileRX  = Math.floor(rightX   / tileSize);
-
-        // are you holding down to drop?
-        const dropIntent = keys["s"] || keys["ArrowDown"];
-
-        // helper
-        function platformAllowsDrop(col, row) {
-          const key = `${currentLevel}-${col}-${row}-1`;
-          return !!tilePropsData[key]?.allowDrop;
-        }
-
-        if (player.vy >= 0) {  // only when falling
-          // only allow drop if you’re over a one‐way tile
-          const dropL = belowLeftOneWay  && dropIntent && platformAllowsDrop(tileLX, tileRow);
-          const dropR = belowRightOneWay && dropIntent && platformAllowsDrop(tileRX, tileRow);
-
-          // if you’re not dropping, these collisions should block you
-          const blockOneWay = (belowLeftOneWay  && !dropL)
-                            || (belowRightOneWay && !dropR);
-
-          if (belowLeftSolid || belowRightSolid || blockOneWay) {
-            // Land: snap to the *top* of tileRow
-            player.vy       = 0;
-            player.onGround = true;
-            player.y        = tileRow * tileSize - player.height;
-
-            SystematicAPI.trigger('onPlayerTouchGround', player, tileLX, tileRow, 1);
-          }
-        }
-
-        // Bounce
-        const sampleX = player.x + player.width / 2;
-        const sampleY = player.y + player.height + 1;
-        if (isBounceTile(sampleX, sampleY)) {
-          const bc  = Math.floor(sampleX / tileSize);
-          const br  = Math.floor(sampleY / tileSize);
-          const key = `${currentLevel}-${bc}-${br}-1`;
-          const str = (tilePropsData[key]?.jumpStrength) ?? 1.2;
-          player.vy       = jumpPower * str;
-          player.onGround = false;
-          animateTileOnce(1, bc, br, [25,24,23,26,26,23], 32);
-
-          const tx = Math.floor((player.x + player.width/2) / tileSize);
-          const ty = Math.floor((player.y + player.height + 1) / tileSize);
-          SystematicAPI.trigger('onPlayerBounce', player, tx, ty, /*layer=*/1);
-        }
-
-        SystematicAPI.trigger("onPostSpecialPhysicsCollision", player, keys);
-
-        // Camera & Draw
-        moveCamera();    
-        drawLevel();
-        drawPlayer();
-      } else {
-        moveCamera();
-        drawLevel();
-        drawGrid();
-      }
-      SystematicAPI._drawParticles(ctx, camX, camY, tileSize);
-      SystematicAPI.trigger('onUpdate', player, keys);
-      requestAnimationFrame(update);
     }
 
-    // 3) unify them every time you build the UI
-    function makeBrushCategories() {
-      // start with a shallow copy of the built-ins
-      const cats = { ...builtinCategories };
+    // --- Wall Proximity Detection (For the Mod) ---
+    // We check 1 pixel away to set the flags WITHOUT snapping the player
+    if (isSolid(player.x + player.width + 1, player.y + 2) || isSolid(player.x + player.width + 1, player.y + player.height - 2)) {
+        player.onWallRight = true;
+        SystematicAPI.trigger("onPlayerTouchWallRight", player);
+    }
+    if (isSolid(player.x - 1, player.y + 2) || isSolid(player.x - 1, player.y + player.height - 2)) {
+        player.onWallLeft = true;
+        SystematicAPI.trigger("onPlayerTouchWallLeft", player);
+    }
 
-      // merge in any mod-defined categories/sprites
-      for (const [catName, ids] of Object.entries(brushCategories)) {
-        if (!cats[catName]) cats[catName] = [];
-        for (const id of ids) {
-          if (!cats[catName].includes(id)) cats[catName].push(id);
+    // Fire Stop Triggers
+    if (wasOnWallRight && !player.onWallRight) SystematicAPI.trigger("onPlayerStopTouchWallRight", player);
+    if (wasOnWallLeft && !player.onWallLeft) SystematicAPI.trigger("onPlayerStopTouchWallLeft", player);
+    
+    // --- Vertical Movement & Resolution ---
+    player.vy += gravity; 
+    player.y += player.vy;
+    
+    // Ceiling Collision
+    if (player.vy < 0 && (isSolid(player.x + 2, player.y) || isSolid(player.x + player.width - 2, player.y))) {
+        if (SystematicAPI.trigger("prePlayerTouchCeiling", player, 0, 0) !== false) {
+            player.vy = 0; 
+            player.y = (Math.floor(player.y / tileSize) + 1) * tileSize;
+            SystematicAPI.trigger("onPlayerTouchCeiling", player);
         }
-      }
-
-      return cats;
     }
 
-    function addSpriteToCategory(category, spriteid) {
-      // If the category doesn't exist, create it as an empty array
-      if (!brushCategories[category]) {
-        brushCategories[category] = [];
-      }
-
-      // Add the sprite id if it's not already in the category
-      if (!brushCategories[category].includes(spriteid)) {
-        brushCategories[category].push(spriteid);
-      }
-    }
-
-    function updateCategorySelector() {
-      brushCategories = makeBrushCategories(); // <-- get fresh categories
-      if (!catSel) {
-        console.error("categorySelector element not found!");
-        return;
-      }
-
-      catSel.innerHTML = Object.keys(brushCategories)
-        .map(name => `<option value="${name}">${name}</option>`)
-        .join("");
-    }
-
-    // --- TILE BRUSH UI ---
-    function createTileBrushes() {
-      const container = document.getElementById("tileBrushes");
-      container.innerHTML = "";
-      container.style.display           = "grid";
-      container.style.gridTemplateColumns = "repeat(11, 68px)";
-      container.style.gridAutoRows      = "68px";
-      container.style.gap               = "4px";
-      container.style.height            = "calc(100% - 40px)";
-      container.style.overflowY         = "auto";
-      container.style.padding           = "10px";
-      container.style.boxSizing         = "border-box";
-
-      // 1) get built-in IDs for this category + search
-      let brushCategories = makeBrushCategories();
-      let idsToShow = brushCategories[currentCategory] || [];
-      if (tileSearchQuery) {
-        idsToShow = idsToShow.filter(idx => {
-          const spr = sprites[idx]?.[0];
-          return String(idx).includes(tileSearchQuery)
-              || (spr?.name||"").toLowerCase().includes(tileSearchQuery);
-        });
-      }
-
-      // 3) render buttons/canvases as before
-      idsToShow.forEach(idx => {
-        const c = document.createElement("canvas");
-        c.width = c.height = 64;
-        c.dataset.tile    = idx;
-        c.classList.add('brush');
-        if (idx === currentTile) c.classList.add('selected');
-        c.onclick = () => {
-          currentTile = idx;
-          document.querySelectorAll("#tileBrushes .brush")
-                  .forEach(canv => canv.classList.remove("selected"));
-          c.classList.add('selected');
-        };
-        c.onmouseover = () => {
-          c.style.transform = "scale(1.1)";
-          drawBrushHoverTooltips();
-        };
-        c.onmouseout = () => {
-          c.style.transform = "scale(1)";
-        };
-        // draw existing sprite data
-        const bctx = c.getContext("2d");
-        bctx.fillStyle = palette[6];
-        bctx.fillRect(0,0,64,64);
-        const spr = sprites[idx]?.[0];
-        if (spr?.data) {
-          const pixelSize   = 3;
-          const spriteSize  = spr.data.length * pixelSize;
-          const offset      = (64 - spriteSize)/2;
-          spr.data.forEach((row,y) =>
-            row.forEach((ci,x) => {
-              if (ci<0) return;
-              bctx.fillStyle = palette[ci] || "#000";
-              bctx.fillRect(
-                offset + x*pixelSize,
-                offset + y*pixelSize,
-                pixelSize, pixelSize
-              );
-            })
-          );
+    // Floor Detection & Resolution
+    const feetY = player.y + player.height;
+    if (isSolid(player.x + 2, feetY) || isSolid(player.x + player.width - 2, feetY) || 
+       (isOneWayTile(player.x + 2, feetY) && !keys["s"])) {
+        
+        player.onGround = true;
+        if (player.vy >= 0) { // Only snap if falling or stationary
+            player.vy = 0; 
+            player.y = Math.floor(feetY / tileSize) * tileSize - player.height;
+            SystematicAPI.trigger("onPlayerTouchGround", player);
         }
-        container.appendChild(c);
-      });
     }
 
-    function drawBrushHoverTooltips() {
-      // grab all canvases inside the brush container
-      const tooltips = document.querySelectorAll("#tileBrushes canvas");
-
-      tooltips.forEach(c => {
-        const idx = parseInt(c.dataset.tile, 10);
-        const sprite = sprites[idx]?.[0];
-
-        if (idx === 0) {
-          c.title = "Eraser";
-        } else if (sprite && sprite.name) {
-          // inside your tooltip updater
-          if (sprite?.data) {
-            // turn each row into a “[n,n,n,…],” string
-            const rowLines = sprite.data.map(row =>
-              `[${ row.join(',') }],`
-            ).join('\n');
-
-            c.title =
-              `Name: ${sprite.name}\n` +
-              `Tile ID: ${idx}\n` +
-              `Sprite:\n${rowLines}`;
-          }
-        } else {
-          c.title = `Tile ID: ${idx}`;
-        }
-      });
+    // Engine Jump (Now placed after ground detection)
+    if ((keys["w"] || keys["ArrowUp"]) && player.onGround) { 
+        player.vy = jumpPower; 
+        player.onGround = false;
+        SystematicAPI.trigger('onPlayerJump', player); 
+    }
+    
+    if (isBounceTile(player.x + player.width/2, player.y + player.height + 1)) {
+       player.vy = CONFIG.JUMP_TILES * tileSize * 1.2; player.onGround = false;
+       const tileX = Math.floor((player.x + player.width/2)/tileSize);
+       const tileY = Math.floor((player.y + player.height + 1)/tileSize);
+       SystematicAPI.trigger("onPlayerBounce", player, tileX, tileY);
+       animateTileOnce(1, Math.floor((player.x + player.width/2)/tileSize), Math.floor((player.y + player.height + 1)/tileSize), [25,24,23,26,23], 32);
     }
 
-    let activePaintIndex = 1;  // default paint color
+    SystematicAPI.trigger("onPostSpecialPhysicsCollision", player, keys);
 
-    function renderEditorPaletteSwatch() {
-      const swatch = document.getElementById('editorPaletteSwatch');
-      swatch.innerHTML = '';
-      palette.forEach((col, i) => {
-        const box = document.createElement('div');
-        Object.assign(box.style, {
-          width: '36.65px', height: '36.65px',
-          background: col,
-          border: (i === activePaintIndex ? '2px solid #ff0' : '1px solid #333'),
-          marginTop: '5px',
-          cursor: 'pointer',
-          display: 'inline-block'
-        });
-        box.title = `Paint index ${i}`;
-        box.addEventListener('click', () => {
-          activePaintIndex = i;
-          renderEditorPaletteSwatch();
-        });
-        swatch.appendChild(box);
-      });
+    CONFIG.ENABLE_LIGHTING = true;
+    moveCamera();
+    drawLevel();
+    drawPlayer();
+  } else {
+    CONFIG.ENABLE_LIGHTING = false;
+    moveCamera();
+    drawLevel();
+    drawGrid();
+  }
+  
+  SystematicAPI._drawParticles(ctx, camX, camY, tileSize);
+  
+  // --- RENDER LIGHTING PASS ---
+  renderLighting();
+  
+  SystematicAPI.trigger('onUpdate', player, keys);
+  requestAnimationFrame(update);
+}
+
+function makeBrushCategories() {
+  const cats = { ...builtinCategories };
+  for (const [catName, ids] of Object.entries(brushCategories)) {
+    if (!cats[catName]) cats[catName] = [];
+    for (const id of ids) { if (!cats[catName].includes(id)) cats[catName].push(id); }
+  }
+  return cats;
+}
+function addSpriteToCategory(category, spriteid) {
+  if (!brushCategories[category]) brushCategories[category] = [];
+  if (!brushCategories[category].includes(spriteid)) brushCategories[category].push(spriteid);
+}
+function updateCategorySelector() {
+  brushCategories = makeBrushCategories();
+  if (!catSel) return;
+  catSel.innerHTML = Object.keys(brushCategories).map(name => `<option value="${name}">${name}</option>`).join("");
+}
+function createTileBrushes() {
+  const container = document.getElementById("tileBrushes");
+  container.innerHTML = "";
+
+  let cats = makeBrushCategories();
+  let idsToShow = cats[currentCategory] || [];
+  if (tileSearchQuery) idsToShow = idsToShow.filter(idx => String(idx).includes(tileSearchQuery) || (sprites[idx]?.[0]?.name||"").toLowerCase().includes(tileSearchQuery));
+
+  idsToShow.forEach(idx => {
+    const c = document.createElement("canvas"); c.width = c.height = 64; c.classList.add('brush');
+    if (idx === currentTile) c.classList.add('selected');
+    c.onclick = () => { currentTile = idx; document.querySelectorAll(".brush").forEach(b => b.classList.remove("selected")); c.classList.add('selected'); };
+    const bctx = c.getContext("2d"); bctx.fillStyle = palette[7]; bctx.fillRect(0,0,64,64);
+    const spr = sprites[idx]?.[0];
+    if (spr?.data) {
+      const ps = 3, sz = spr.data.length * ps, off = (64 - sz)/2;
+      spr.data.forEach((row,y) => row.forEach((ci,x) => { if(ci<0)return; bctx.fillStyle = palette[ci] || "#000"; bctx.fillRect(off + x*ps, off + y*ps, ps, ps); }));
     }
+    container.appendChild(c);
+  });
+}
 
-    const openBtn = document.getElementById('openSpriteEditor');
-    const modal   = document.getElementById('spriteEditorModal');
-    const grid    = document.getElementById('spriteGrid');
-    const nameInp = document.getElementById('spriteEditorName');
-    const saveBtn = document.getElementById('spriteEditorSave');
-    const cancelB = document.getElementById('spriteEditorCancel');
+function drawBrushHoverTooltips() {
+  // grab all canvases inside the brush container
+  const tooltips = document.querySelectorAll("#tileBrushes canvas");
 
-    let editData = [];
+  tooltips.forEach(c => {
+    const idx = parseInt(c.dataset.tile, 10);
+    const sprite = sprites[idx]?.[0];
 
-    function initEditorGrid() {
-      renderEditorPaletteSwatch();
-      grid.innerHTML = '';
-      editData = Array.from({ length: 10 }, () => Array(10).fill(0));
-      for (let y = 0; y < 10; y++) {
-        for (let x = 0; x < 10; x++) {
-          const cell = document.createElement('div');
-          cell.dataset.x = x;
-          cell.dataset.y = y;
-          Object.assign(cell.style, {
-            width: '30px', height: '30px',
-            border: '1px solid #666',
-            background: palette[0] || 'rgba(0,0,0,0)',
-            cursor: 'pointer'
-          });
-          cell.addEventListener('click', () => {
-            editData[y][x] = activePaintIndex;
-            cell.style.background = palette[activePaintIndex] || 'rgba(0,0,0,0)';
-          });
-          grid.appendChild(cell);
-        }
+    if (idx === 0) {
+      c.title = "Eraser";
+    } else if (sprite && sprite.name) {
+      // inside your tooltip updater
+      if (sprite?.data) {
+        // turn each row into a “[n,n,n,…],” string
+        const rowLines = sprite.data.map(row =>
+          `[${ row.join(',') }],`
+        ).join('\n');
+
+        c.title =
+          `Name: ${sprite.name}\n` +
+          `Tile ID: ${idx}\n` +
+          `Sprite:\n${rowLines}`;
       }
+    } else {
+      c.title = `Tile ID: ${idx}`;
     }
+  });
+}
 
-    function repaintEditorGrid() {
-      grid.querySelectorAll('div').forEach(cell => {
-        const x = +cell.dataset.x, y = +cell.dataset.y;
-        const idx = editData[y][x];
-        cell.style.background = palette[idx] || 'rgba(0,0,0,0)';
-      });
+// --- SPRITE EDITOR UI ---
+let activePaintIndex = 1;
+function renderEditorPaletteSwatch() {
+  const swatch = document.getElementById('editorPaletteSwatch'); swatch.innerHTML = '';
+  palette.forEach((col, i) => {
+    const box = document.createElement('div');
+    Object.assign(box.style, { width: '30px', height: '30px', background: col, border: i === activePaintIndex ? '2px solid #fff' : '1px solid #333', display: 'inline-block', cursor: 'pointer' });
+    box.onclick = () => { activePaintIndex = i; renderEditorPaletteSwatch(); };
+    swatch.appendChild(box);
+  });
+}
+const openBtn = document.getElementById('openSpriteEditor'), modal = document.getElementById('spriteEditorModal'), grid = document.getElementById('spriteGrid'), nameInp = document.getElementById('spriteEditorName'), saveBtn = document.getElementById('spriteEditorSave'), cancelB = document.getElementById('spriteEditorCancel');
+let editData = [];
+function initEditorGrid() {
+  renderEditorPaletteSwatch(); grid.innerHTML = ''; editData = Array.from({ length: 10 }, () => Array(10).fill(0));
+  for (let y = 0; y < 10; y++) {
+    for (let x = 0; x < 10; x++) {
+      const cell = document.createElement('div'); cell.dataset.x = x; cell.dataset.y = y;
+      Object.assign(cell.style, { width: '30px', height: '30px', border: '1px solid #666', background: palette[0], cursor: 'pointer' });
+      cell.onclick = () => { editData[y][x] = activePaintIndex; cell.style.background = palette[activePaintIndex]; };
+      grid.appendChild(cell);
     }
-    openBtn.addEventListener('click', () => {
-      initEditorGrid();
-      nameInp.value = '';
-      modal.style.display = 'block';
-    });
-    cancelB.addEventListener('click', () => {
-      modal.style.display = 'none';
-    });
+  }
+}
+openBtn.onclick = () => { initEditorGrid(); nameInp.value = ''; modal.style.display = 'block'; };
+cancelB.onclick = () => { modal.style.display = 'none'; };
+saveBtn.onclick = () => {
+  const nm = nameInp.value.trim(); if (!nm) return;
+  const existingIds = Object.keys(sprites).map(k => parseInt(k)).filter(n => !isNaN(n));
+  const nextId = Math.max(...existingIds, 39) + 1;
+  SystematicAPI.registerTile({ id: nextId, name: nm, category: "Custom", sprite: editData.map(row => [...row]) });
+  modal.style.display = 'none';
+};
 
-    saveBtn.addEventListener('click', () => {
-      const nm = nameInp.value.trim();
-      if (!nm) return alert('Please give your sprite a name.');
+// Start
+updateCategorySelector();
+updatePaletteSelector(palsel);
+createTileBrushes();
 
-      // 1) Find the next available tile ID
-      const existingIds = Object.keys(sprites).map(k => parseInt(k)).filter(n => !isNaN(n));
-      const nextId = Math.max(...existingIds, 39) + 1; // Start after built-in tiles
-
-      // 2) Add the sprite to the sprites array (for compatibility)
-      sprites[nextId] = [{ name: nm, data: editData.map(row => [...row]) }]; // deep copy
-
-      // 3) Register it as a proper tile using the API
-      SystematicAPI.registerTile({
-        id: nextId,
-        name: nm,
-        category: "Custom", // or "Painted" to match existing category
-        sprite: editData.map(row => [...row]), // deep copy the data
-        properties: {} // no special properties by default
-      });
-
-      console.log(`Registered new sprite "${nm}" with ID ${nextId}`);
-
-      // 4) Build a JS-snippet string (keep existing download functionality)
-      let code = '// Auto-generated sprite definitions\n';
-      code += 'const sprites = [\n';
-
-      // Only export the actual sprite data, not the registration
-      Object.entries(sprites).forEach(([idx, bucket]) => {
-        if (bucket && bucket[0]) {
-          const sprite = bucket[0];
-          code += `  {\n`;
-          code += `    id: ${idx},\n`;
-          code += `    name: "${sprite.name}",\n`;
-          code += `    data: [\n`;
-          // each row as "[n,n,n,...],"
-          const rowLines = sprite.data
-            .map(row => `      [${row.join(',')}],`)
-            .join('\n');
-          code += rowLines + '\n';
-          code += `    ]\n`;
-          code += `  },\n`;
-        }
-      });
-
-      code += '];\n';
-
-      // 5) Trigger download of a .js file
-      const blob = new Blob([code], { type: 'application/json' });
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href     = url;
-      a.download = 'sprites.json';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      // 6) Close modal
-      modal.style.display = 'none';
-      
-      // 7) Refresh the brush UI to show the new tile
-      createTileBrushes();
-      
-      alert(`Sprite "${nm}" created and ready to use!`);
-    });
-
-    // extend your existing paletteSelector handler:
-    const sel = document.getElementById("paletteSelector");
-    sel.onchange = e => {
-      const newPalette = palettes[e.target.value];
-      palette = newPalette;
-
-      // rebuild tile caches
-      tileCache     = {};
-      animTileCache = {};
-
-      // update both layers
-      onPaletteChangeForLayer(0, newPalette);
-      onPaletteChangeForLayer(1, newPalette);
-
-      buildStaticTileCache();
-      buildAnimatedCache();
-
-      createTileBrushes();
-      if (modal.style.display === 'block') {
-        repaintEditorGrid();
-        renderEditorPaletteSwatch();
-      }
-    };
-
-    const loader = document.getElementById('loadSpriteLoader');
-    loader.addEventListener('change', e => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-
-      reader.onload = () => {
-        const text = reader.result;
-        const match = text.match(/const\s+sprites\s*=\s*(\[[\s\S]*\]);?/);
-        if (!match) {
-          return alert('Invalid format: couldn’t find "const sprites = [ … ];"');
-        }
-        let importedArray;
-        try {
-          importedArray = (new Function(`"use strict"; return ${match[1]}`))();
-        } catch (err) {
-          return alert('Error parsing sprites array: ' + err.message);
-        }
-        if (!Array.isArray(importedArray)) {
-          return alert('Parsed value is not an array.');
-        }
-
-        // Map flat objects to your bucket format
-        const importedBuckets = importedArray
-          .filter(obj => obj.name && Array.isArray(obj.data))
-          .map(obj => [{ name: obj.name, data: obj.data }]);
-
-
-        // Replace or append
-        importedBuckets.forEach(newBucket => {
-          const newName = newBucket[0].name;
-          // find existing sprite by name
-          const existingIndex = sprites.findIndex(
-            bucket => bucket[0]?.name === newName
-          );
-          if (existingIndex >= 0) {
-            // overwrite data
-            sprites[existingIndex] = newBucket;
-          } else {
-            // brand new sprite
-            sprites.push(newBucket);
-          }
-        });
-
-        // Refresh the UI
-        createTileBrushes();
-        alert(`Imported ${importedBuckets.length} sprites (replaced ${importedBuckets.filter(b => 
-          sprites.findIndex(sb => sb[0].name === b[0].name) >= 0
-        ).length} existing, added ${importedBuckets.length - importedBuckets.filter(b => 
-          sprites.findIndex(sb => sb[0].name === b[0].name) >= 0
-        ).length} new).`);
-      };
-
-      reader.readAsText(file);
-      e.target.value = '';
-    });
-
-    // === Auto-load from localStorage ===
-    const SAVED_KEY = "pixelPlatformerLevels";
-    const stored = localStorage.getItem(SAVED_KEY);
-    if (stored) {
-      try {
-        const arr = JSON.parse(stored);
-        if (Array.isArray(arr)) {
-          levels = arr;
-          currentLevel = 0;
-          level = levels[0];
-        }
-      } catch (e) {
-        console.warn("Could not parse saved levels:", e);
-      }
+// === Auto-load from localStorage ===
+const SAVED_KEY = "pixelPlatformerLevels";
+const stored = localStorage.getItem(SAVED_KEY);
+if (stored) {
+  try {
+    const arr = JSON.parse(stored);
+    if (Array.isArray(arr)) {
+      levels = arr;
+      currentLevel = 0;
+      level = levels[0];
     }
+  } catch (e) {
+    console.warn("Could not parse saved levels:", e);
+  }
+}
 
-    // Try to load from hash
-    if (location.hash.length > 1) {
-      const imported = decodeLevels(location.hash.slice(1));
-      if (Array.isArray(imported)) {
-        levels = imported;
-        currentLevel = 0;
-        level = levels[0];
-      }
-    }
-    // Update UI & caches
-    refreshLevelLabel();
-    createTileBrushes();
-
-    // Watch for manual hash changes (e.g. user pastes a link)
-    window.addEventListener("hashchange", () => {
-      const imported = decodeLevels(location.hash.slice(1));
-      if (Array.isArray(imported)) {
-        levels = imported;
-        currentLevel = 0;
-        level = levels[0];
-        refreshLevelLabel();
-        dirtyTiles.clear();
-      }
-    });
-
-    // --- STARTUP ---
-    updateCategorySelector();
-    updatePaletteSelector(palsel);
-    createTileBrushes();
-    update();  // kick off main loop
+// Try to load from hash
+if (location.hash.length > 1) {
+  const imported = decodeLevels(location.hash.slice(1));
+  if (Array.isArray(imported)) {
+    levels = imported;
+    currentLevel = 0;
+    level = levels[0];
+  }
+}
+update();

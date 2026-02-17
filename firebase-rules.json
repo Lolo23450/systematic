@@ -1,0 +1,22 @@
+{
+  "rules": {
+    ".read": true,
+    ".write": "auth != null",
+    "levels": {
+      ".read": true,
+      ".write": "auth != null && (auth.uid === newData.child('author').val() || root.child('admins').hasChild(auth.uid))"
+    },
+    "levels_shared": {
+      ".read": true,
+      ".write": "auth != null && (data.child('public').val() === true || root.child('admins').hasChild(auth.uid))"
+    },
+    "admins": {
+      ".read": "auth != null && root.child('admins').hasChild(auth.uid)",
+      ".write": "auth != null && root.child('super_admins').hasChild(auth.uid)"
+    },
+    "super_admins": {
+      ".read": "auth != null && root.child('super_admins').hasChild(auth.uid)",
+      ".write": false
+    }
+  }
+}

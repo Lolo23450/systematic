@@ -144,10 +144,10 @@ Common hooks include:
   Fires before you even process movement input each frame. Perfect for mods that want to override or inject custom controls.
 
 * **`onPostInput(player, keys)`**
-  Fires after you player.vx & player.vy from input, but before physics. Great for mods that tweak velocities.
+  Fires after player.vx & player.vy are set from input, but before physics. Great for mods that tweak velocities.
   
 * **`onPostPhysicsCollision(player, keys)`**
-  Fires after the physics and collision are handled, but before special tile collisions, and before setting the final player position. Great for correcting or tweaking the player's        final position before any custom tile physics / collisions
+  Fires after the physics and collision are handled, but before special tile collisions, and before setting the final player position. Great for correcting or tweaking the player's final position before any custom tile physics / collisions
 
 * **`onPostSpecialPhysicsCollision(player, keys)`**
   Fires after the collision and special tile collision are handled, but before setting the final player position. Great for correcting or tweaking the player's final final position 
@@ -162,16 +162,16 @@ Common hooks include:
 * **`onPlayerTouchCeiling(player)`**
   Called when the player touches the ceiling, returns player attributes like x, y, vx, vy, height, width, etc
 
-* **`onPlayerTouchWallRight(player, tileX, tileY, layer)`**
-  Called when the player touches a wall on the right, returns player attributes like x, y, vx, vy, height, width, etc, and where that event happened (tx,ty,layer).
+* **`onPlayerTouchWallRight(player, tileX, tileY)`**
+  Called when the player touches a wall on the right, returns player attributes like x, y, vx, vy, height, width, etc, and where that event happened (tx,ty).
 
-* **`onPlayerTouchWallLeft(player, tileX, tileY, layer)`**
-  Called when the player touches a wall on the left, returns player attributes like x, y, vx, vy, height, width, etc, and where that event happened (tx,ty,layer).
+* **`onPlayerTouchWallLeft(player, tileX, tileY)`**
+  Called when the player touches a wall on the left, returns player attributes like x, y, vx, vy, height, width, etc, and where that event happened (tx,ty).
 
-* **`onPlayerBounce(player, tileX, tileY, layer)`**
-  Called when the player bounces on a spring, returns player attributes like x, y, vx, vy, height, width, etc, and where that event happened (tx,ty,layer).
+* **`onPlayerBounce(player, tileX, tileY)`**
+  Called when the player bounces on a spring, returns player attributes like x, y, vx, vy, height, width, etc, and where that event happened (tx,ty).
 
-* **`prePlayerTouchWallRight(player, tileX, tileY, layer)`**  
+* **`prePlayerTouchWallRight(player, tileX, tileY)`**  
   Called right before the engine snaps the player to the right wall and zeros horizontal velocity. If any listener returns `true`, the default zeroing of `player.vx` is skipped, 
   letting mods override behavior like wall climbing or jumping.
 
@@ -199,9 +199,29 @@ Common hooks include:
 The API now includes a wide range of helper functions for modding and scripting:
 
 #### Tile & Level Utilities
+- **`SystematicAPI.getCurrentMode()`**  
+  Returns "play"/"edit" as strings depending on the mode
 
 - **`SystematicAPI.getTileAt(x, y, layer)`**  
   Get the tile ID at a given position and layer.
+
+- **`SystematicAPI.getTilePosition(tileID, layer = 1)`** 
+  Get the position of a tile by giving the tile id and layer
+
+- **`SystematicAPI.getCameraPosition()`** 
+  Returns the camera position (x, y)
+
+- **`SystematicAPI.getLevelArrayData()`**
+  Returns the current level data as an array
+
+- **`SystematicAPI.setLevelArrayData(arr)`** 
+  Loads an array of level data
+
+- **`SystematicAPI.saveTileAreaTemplate(x, y, w, h, name)`**
+  Saves a rect selection area of the level into the localstorage, define an unique name for it
+
+- **`SystematicAPI.  api.loadTileAreaTemplate(x, y, name)`**
+  Loads a saved template from localstorage into a specified position of the level, use the unique name to load it
 
 - **`SystematicAPI.setTileAt(x, y, layer, id)`**  
   Set the tile ID at a given position and layer.
@@ -564,5 +584,5 @@ Use this inside custom UI canvases or mods to draw any registered sprite.
 ## License & Attribution
 
 Licensed under the **MIT License**.  
-© 2025 lolo2345 — Attribution required.  
+© 2026 lolo2345 — Attribution required.  
 See [LICENSE](LICENSE) for full text.

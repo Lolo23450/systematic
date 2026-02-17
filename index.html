@@ -99,15 +99,24 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
 <script>
+  // Firebase Configuration - Load from environment variables or fallback to development config
   const firebaseConfig = {
-    apiKey: "AIzaSyC0pasKpmtRx7Y7SInii9nrnHIPNFXw2EM",
-    authDomain: "systematic-9f59b.firebaseapp.com",
-    databaseURL: "https://systematic-9f59b-default-rtdb.firebaseio.com",
-    projectId: "systematic-9f59b",
-    storageBucket: "systematic-9f59b.firebasestorage.app",
-    messagingSenderId: "892897038405",
-    appId: "1:892897038405:web:9901e4b5b92ae2aff0932c"
+    apiKey: typeof FIREBASE_API_KEY !== 'undefined' ? FIREBASE_API_KEY : null,
+    authDomain: typeof FIREBASE_AUTH_DOMAIN !== 'undefined' ? FIREBASE_AUTH_DOMAIN : null,
+    databaseURL: typeof FIREBASE_DATABASE_URL !== 'undefined' ? FIREBASE_DATABASE_URL : null,
+    projectId: typeof FIREBASE_PROJECT_ID !== 'undefined' ? FIREBASE_PROJECT_ID : null,
+    storageBucket: typeof FIREBASE_STORAGE_BUCKET !== 'undefined' ? FIREBASE_STORAGE_BUCKET : null,
+    messagingSenderId: typeof FIREBASE_MESSAGING_SENDER_ID !== 'undefined' ? FIREBASE_MESSAGING_SENDER_ID : null,
+    appId: typeof FIREBASE_APP_ID !== 'undefined' ? FIREBASE_APP_ID : null
   };
+
+  // Security check - warn if using development config in production
+  if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    if (typeof FIREBASE_API_KEY === 'undefined') {
+      console.warn('⚠️ Security Warning: Using development Firebase config in production environment');
+      console.warn('Please set up environment variables for production deployment');
+    }
+  }
 
   // Initialize Firebase
   firebase.initializeApp(firebaseConfig);
@@ -125,12 +134,12 @@
 <script src="updates/update2.js"></script>
 
 <!--Uncomment the scripts below to load examplemods-->
-<!--<script src="mods/examplemod/exampletiles.js"></script>-->
 <!--<script src="mods/examplemod/exampleplayerabiltity.js"></script>-->
 <!--<script src="mods/examplemod/examplepalette.js"></script>-->
 <!--<script src="mods/examplemod/exampleplacekey.js"></script>-->
 <!--<script src="mods/examplemod/examplemodal.js"></script>-->
 <!--<script src="mods/examplemod/exampleparticle.js"></script>-->
+<!--<script src="mods/examplemod/examplefalldamage.js"></script>-->
 <!--Add more mods by placing more scripts here-->
 
 </html>
