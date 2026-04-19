@@ -476,6 +476,44 @@ let player = {
 };
 const keys = {};
 
+// Spawn & respawn tracking
+let spawnPoint = { x: 100, y: 100 };
+let activeMessage = null;
+let activeMessageTimer = 0;
+
+function setSpawnPoint(x, y) { spawnPoint.x = x; spawnPoint.y = y; }
+function respawnPlayer() {
+  player.x = spawnPoint.x; player.y = spawnPoint.y;
+  player.vx = 0; player.vy = 0;
+  SystematicAPI.trigger("onPlayerRespawn", player);
+}
+
+function showOverlayMessage(text, duration = 2500) {
+  activeMessage = text;
+  activeMessageTimer = duration;
+}
+
+function drawOverlayMessage(dt) {
+  if (!activeMessage) return;
+  activeMessageTimer -= dt * 1000;
+  if (activeMessageTimer <= 0) { activeMessage = null; return; }
+  const alpha = Math.min(1, activeMessageTimer / 400);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = "rgba(0,0,0,0.55)";
+  const w = 340, h = 44;
+  const bx = (canvas.width - w) / 2, by = canvas.height / 2 - 80;
+  ctx.beginPath();
+  ctx.roundRect(bx, by, w, h, 8);
+  ctx.fill();
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 16px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(activeMessage, canvas.width / 2, by + h / 2);
+  ctx.restore();
+}
+
 updatePaletteSelector(palsel);
 
 function updatePaletteSelector(palsel) {
@@ -515,6 +553,11 @@ const canvasContainer = document.getElementById("canvasContainer"), tileProps = 
 
 canvas.addEventListener("contextmenu", e => {
   e.preventDefault();
+  if (mode === "zone") {
+    const zone = getZoneAtMouse(e.offsetX, e.offsetY);
+    if (zone) { selectedZone = zone; zoneEditorState = "selected"; openZonePanel(zone); }
+    return;
+  }
   const tx = Math.floor((e.offsetX + camX) / tileSize);
   const ty = Math.floor((e.offsetY + camY) / tileSize);
   if (tx < 0 || ty < 0 || tx >= mapCols || ty >= mapRows) return;
@@ -601,92 +644,96 @@ let currentLayer = 1;
       preview.style.marginRight = '8px';
       return preview;
     }
-
+  if (browseBtn) {
     browseBtn.addEventListener('click', async () => {
-      sharedList.innerHTML = '<li>Loading…</li>';
-        sharedModalBackdrop.style.display = 'flex';
+        sharedList.innerHTML = '<li>Loading…</li>';
+          sharedModalBackdrop.style.display = 'flex';
 
-      try {
-        const snapshot = await db.ref('levels')
-                                .orderByKey()
-                                .limitToLast(20)
-                                .once('value');
-        const data = snapshot.val() || {};
-        sharedList.innerHTML = '';
+        try {
+          const snapshot = await db.ref('levels')
+                                  .orderByKey()
+                                  .limitToLast(20)
+                                  .once('value');
+          const data = snapshot.val() || {};
+          sharedList.innerHTML = '';
 
-        const entries = Object.entries(data).reverse();
-        if (!entries.length) {
-          sharedList.innerHTML = '<li>No shared levels yet.</li>';
-          return;
-        }
+          const entries = Object.entries(data).reverse();
+          if (!entries.length) {
+            sharedList.innerHTML = '<li>No shared levels yet.</li>';
+            return;
+          }
 
-        entries.forEach(([key, raw]) => {
-          // raw is an array[row][col] of [id0,id1]
-          const norm = normalizeLevelData(raw);
-          const rows = norm.length;
-          const cols = norm[0]?.length || 0;
+          entries.forEach(([key, raw]) => {
+            // raw is an array[row][col] of [id0,id1]
+            const norm = normalizeLevelData(raw);
+            const rows = norm.length;
+            const cols = norm[0]?.length || 0;
 
-          const li = document.createElement('li');
-          li.style.display = 'flex';
-          li.style.alignItems = 'center';
-          li.style.padding = '0.5em 0';
-          li.style.borderBottom = '1px solid #444';
-          li.style.cursor = 'pointer';
+            const li = document.createElement('li');
+            li.style.display = 'flex';
+            li.style.alignItems = 'center';
+            li.style.padding = '0.5em 0';
+            li.style.borderBottom = '1px solid #444';
+            li.style.cursor = 'pointer';
 
-          // preview thumbnail
-          const thumb = makePreviewCanvas(norm, cols, rows);
-          li.appendChild(thumb);
+            // preview thumbnail
+            const thumb = makePreviewCanvas(norm, cols, rows);
+            li.appendChild(thumb);
 
-          // label
-          const lbl = document.createElement('span');
-          lbl.textContent = key;
-          li.appendChild(lbl);
+            // label
+            const lbl = document.createElement('span');
+            lbl.textContent = key;
+            li.appendChild(lbl);
 
-          li.addEventListener('click', () => {
-            // overwrite entire levels array with a single‐level pack
-            levels = [ norm ];
-            currentLevel = 0;
-            level = levels[0];
-            refreshLevelLabel();
-            updateURLState();
-            sharedModalBackdrop.style.display = "none"
+            li.addEventListener('click', () => {
+              // overwrite entire levels array with a single‐level pack
+              levels = [ norm ];
+              currentLevel = 0;
+              level = levels[0];
+              refreshLevelLabel();
+              updateURLState();
+              sharedModalBackdrop.style.display = "none"
+            });
+
+            sharedList.appendChild(li);
           });
+        } catch (err) {
+          sharedList.innerHTML = `<li style="color:red">Error: ${err.message}</li>`;
+        }
+      });
 
-          sharedList.appendChild(li);
-        });
-      } catch (err) {
-        sharedList.innerHTML = `<li style="color:red">Error: ${err.message}</li>`;
-      }
-    });
+      closeBtn.addEventListener('click', () => {
+        sharedModalBackdrop.style.display = 'none';
+      });
+    };
 
-    closeBtn.addEventListener('click', () => {
-      sharedModalBackdrop.style.display = 'none';
-    });
+// Features & Docs button (always active)
+(function() {
+      const viewDocsBtn = document.getElementById('viewDocsBtn');
+      const docsModal   = document.getElementById('docsModal');
+      const docsContent = document.getElementById('docsContent');
+      const closeDocs   = document.getElementById('closeDocs');
 
-    const viewDocsBtn = document.getElementById('viewDocsBtn');
-    const docsModal   = document.getElementById('docsModal');
-    const docsContent = document.getElementById('docsContent');
-    const closeDocs   = document.getElementById('closeDocs');
+      // raw URL for your README
+      const README_URL = 'https://raw.githubusercontent.com/lolo23450/systematic/main/README.md';
 
-    // raw URL for your README
-    const README_URL = 'https://raw.githubusercontent.com/lolo23450/systematic/main/README.md';
+      viewDocsBtn.addEventListener('click', async () => {
+        docsModal.style.display = 'flex';
+        docsContent.innerHTML  = 'Loading…';
+        try {
+          const res  = await fetch(README_URL);
+          const md   = await res.text();
+          // render markdown to HTML
+          docsContent.innerHTML = marked.parse(md);
+        } catch (err) {
+          docsContent.innerHTML = `<p style="color:salmon">Failed to load docs:<br>${err}</p>`;
+        }
+      });
 
-    viewDocsBtn.addEventListener('click', async () => {
-      docsModal.style.display = 'flex';
-      docsContent.innerHTML  = 'Loading…';
-      try {
-        const res  = await fetch(README_URL);
-        const md   = await res.text();
-        // render markdown to HTML
-        docsContent.innerHTML = marked.parse(md);
-      } catch (err) {
-        docsContent.innerHTML = `<p style="color:salmon">Failed to load docs:<br>${err}</p>`;
-      }
-    });
-
-    closeDocs.addEventListener('click', () => {
-      docsModal.style.display = 'none';
-    });
+      closeDocs.addEventListener('click', () => {
+        docsModal.style.display = 'none';
+      });
+})();
 
 canvas.addEventListener("mousedown", e => {
   if (mode !== "edit" || e.button !== 0) return;
@@ -715,6 +762,14 @@ window.addEventListener("keydown", e => {
   SystematicAPI.trigger("onKeyDown", e.key, e);
   if ((e.ctrlKey||e.metaKey) && e.key === 'z') { e.preventDefault(); undo(); }
   if ((e.ctrlKey || e.metaKey) && e.key === 'y') { e.preventDefault(); redo(); }
+  if (mode === "zone" && e.key === "Delete" && selectedZone) {
+    e.preventDefault();
+    const idx = triggerZones.indexOf(selectedZone);
+    if (idx !== -1) triggerZones.splice(idx, 1);
+    selectedZone = null;
+    zoneEditorState = "idle";
+    zonePropPanel.style.display = 'none';
+  }
 });
 window.addEventListener("keyup", e => { keys[e.key] = false; SystematicAPI.trigger("onKeyUp", e.key, e); });
 
@@ -753,8 +808,11 @@ function paintAt(e) {
   undoStack.push({ x,y,layer,oldTile,newTile });
   if (undoStack.length>CONFIG.MAX_HISTORY) undoStack.shift(); redoStack.length=0;
   level[y][x][layer] = newTile;
-  
-  SystematicAPI.trigger("onTilePlaced", x * 30, y * 30, layer, newTile);
+
+  if (oldTile !== 0) {
+    SystematicAPI.trigger("onTileRemoved", x * tileSize, y * tileSize, layer, oldTile);
+  }
+  SystematicAPI.trigger("onTilePlaced", x * tileSize, y * tileSize, layer, newTile);
   updateURLState();
 }
 
@@ -1193,8 +1251,23 @@ function animateTileOnce(layer, x, y, frames, fps) {
 }
 
 function togglePlaytest() {
-  if (mode === "edit") { mode = "play"; player.x = 100; player.y = 100; player.vx = player.vy = 0; }
-  else mode = "edit";
+  if (mode === "edit" || mode === "zone") {
+    mode = "play";
+    // Check if a spawnpoint zone exists on this level; use it as initial spawn
+    const spawnZone = triggerZones.find(z => z.level === currentLevel && z.action === "spawnpoint");
+    if (spawnZone) {
+      spawnPoint.x = spawnZone.tx * tileSize + (spawnZone.tw * tileSize - player.width) / 2;
+      spawnPoint.y = spawnZone.ty * tileSize + (spawnZone.th * tileSize - player.height) / 2;
+    } else {
+      spawnPoint.x = 100; spawnPoint.y = 100;
+    }
+    player.x = spawnPoint.x; player.y = spawnPoint.y; player.vx = player.vy = 0;
+    zonePropPanel.style.display = 'none';
+  } else {
+    mode = "edit";
+    activeMessage = null;
+    triggerZones.forEach(z => { z._triggered = false; });
+  }
 }
 
 let lastTime = performance.now();
@@ -1221,9 +1294,9 @@ if (mode === "play") {
     else if (keys["d"] || keys["ArrowRight"]) player.vx = moveSpeed; 
     else player.vx = 0;
 
+    SystematicAPI.trigger("onPostInput", player, keys);
     // --- Horizontal Movement & Resolution ---
     player.x += player.vx;
-    SystematicAPI.trigger("onPostInput", player, keys);
 
     // Only snap X if we are actually moving into a wall
     if (player.vx > 0) {
@@ -1303,14 +1376,18 @@ if (mode === "play") {
     SystematicAPI.trigger("onPostSpecialPhysicsCollision", player, keys);
 
     CONFIG.ENABLE_LIGHTING = true;
+    checkZoneTriggers();
     moveCamera();
     drawLevel();
+    drawAllZones(false);
     drawPlayer();
+    drawOverlayMessage(dt);
   } else {
     CONFIG.ENABLE_LIGHTING = false;
     moveCamera();
     drawLevel();
     drawGrid();
+    drawAllZones(mode === "zone");
   }
   
   SystematicAPI._drawParticles(ctx, camX, camY, tileSize);
@@ -1423,6 +1500,454 @@ saveBtn.onclick = () => {
   SystematicAPI.registerTile({ id: nextId, name: nm, category: "Custom", sprite: editData.map(row => [...row]) });
   modal.style.display = 'none';
 };
+
+// ============================================================
+// TRIGGER ZONE SYSTEM
+// ============================================================
+
+let triggerZones = [];
+let zoneNextId = 1;
+let selectedZone = null;
+let zoneEditorState = "idle"; // "idle" | "drawing" | "selected" | "moving" | "resizing"
+let zoneDrawStart = null;
+let zoneDrawEnd = null;
+let zoneMoveOffset = null;
+let zoneResizeHandle = null;
+let zoneResizeOrigin = null;
+
+const ZONE_COLORS = {
+  none:       "#888888",
+  nextLevel:  "#22ff88",
+  teleport:   "#55aaff",
+  spawnpoint: "#ffee33",
+  checkpoint: "#ff8833",
+  killPlayer: "#ff3344",
+  showMessage:"#cc55ff"
+};
+const ZONE_HANDLE_SIZE = 10;
+
+// --- Zone rendering ---
+function drawAllZones(editMode) {
+  for (const zone of triggerZones) {
+    if (zone.level !== currentLevel) continue;
+    const px = zone.tx * tileSize - camX;
+    const py = zone.ty * tileSize - camY;
+    const pw = zone.tw * tileSize;
+    const ph = zone.th * tileSize;
+    const col = ZONE_COLORS[zone.action] || "#ffffff";
+    const isSelected = editMode && selectedZone === zone;
+
+    ctx.save();
+    ctx.globalAlpha = editMode ? 0.28 : 0.10;
+    ctx.fillStyle = col;
+    ctx.fillRect(px, py, pw, ph);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = col;
+    ctx.lineWidth = isSelected ? 2.5 : 1.5;
+    ctx.setLineDash(editMode ? (isSelected ? [] : [6, 3]) : [4, 4]);
+    ctx.strokeRect(px + 0.5, py + 0.5, pw - 1, ph - 1);
+    ctx.setLineDash([]);
+    if (editMode) {
+      ctx.fillStyle = col;
+      ctx.font = "bold 11px monospace";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillText((zone.label || zone.action) + " #" + zone.id, px + 5, py + 4);
+    }
+    // Resize handles for selected zone in zone-edit mode
+    if (isSelected) {
+      const hs = getZoneHandlePositions(zone);
+      for (const h of Object.values(hs)) {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(h.x - ZONE_HANDLE_SIZE/2, h.y - ZONE_HANDLE_SIZE/2, ZONE_HANDLE_SIZE, ZONE_HANDLE_SIZE);
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(h.x - ZONE_HANDLE_SIZE/2, h.y - ZONE_HANDLE_SIZE/2, ZONE_HANDLE_SIZE, ZONE_HANDLE_SIZE);
+      }
+    }
+    ctx.restore();
+  }
+
+  // Draw rubber-band for new zone being drawn
+  if (zoneEditorState === "drawing" && zoneDrawStart && zoneDrawEnd) {
+    const tx1 = Math.min(zoneDrawStart.tx, zoneDrawEnd.tx);
+    const ty1 = Math.min(zoneDrawStart.ty, zoneDrawEnd.ty);
+    const tx2 = Math.max(zoneDrawStart.tx, zoneDrawEnd.tx);
+    const ty2 = Math.max(zoneDrawStart.ty, zoneDrawEnd.ty);
+    const rx = tx1 * tileSize - camX, ry = ty1 * tileSize - camY;
+    const rw = (tx2 - tx1 + 1) * tileSize, rh = (ty2 - ty1 + 1) * tileSize;
+    ctx.save();
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(rx, ry, rw, rh);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 4]);
+    ctx.strokeRect(rx + 0.5, ry + 0.5, rw - 1, rh - 1);
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+}
+
+function getZoneHandlePositions(zone) {
+  const l = zone.tx * tileSize - camX;
+  const t = zone.ty * tileSize - camY;
+  const r = (zone.tx + zone.tw) * tileSize - camX;
+  const b = (zone.ty + zone.th) * tileSize - camY;
+  const mx = (l + r) / 2, my = (t + b) / 2;
+  return { tl:{x:l,y:t}, tm:{x:mx,y:t}, tr:{x:r,y:t}, ml:{x:l,y:my}, mr:{x:r,y:my}, bl:{x:l,y:b}, bm:{x:mx,y:b}, br:{x:r,y:b} };
+}
+
+function getHandleAtMouse(zone, mx, my) {
+  const hs = getZoneHandlePositions(zone);
+  for (const [name, h] of Object.entries(hs)) {
+    if (Math.abs(mx - h.x) <= ZONE_HANDLE_SIZE && Math.abs(my - h.y) <= ZONE_HANDLE_SIZE) return name;
+  }
+  return null;
+}
+
+function getZoneAtMouse(mx, my) {
+  for (let i = triggerZones.length - 1; i >= 0; i--) {
+    const z = triggerZones[i];
+    if (z.level !== currentLevel) continue;
+    const px = z.tx * tileSize - camX, py = z.ty * tileSize - camY;
+    if (mx >= px && mx <= px + z.tw * tileSize && my >= py && my <= py + z.th * tileSize) return z;
+  }
+  return null;
+}
+
+function applyZoneResize(zone, handle, tx, ty, orig) {
+  const fR = orig.tx + orig.tw;  // fixed right (exclusive, in tiles)
+  const fB = orig.ty + orig.th;  // fixed bottom
+  switch (handle) {
+    case 'tl': zone.tx = Math.min(tx, fR-1); zone.ty = Math.min(ty, fB-1); zone.tw = fR - zone.tx; zone.th = fB - zone.ty; break;
+    case 'tm': zone.ty = Math.min(ty, fB-1); zone.th = fB - zone.ty; break;
+    case 'tr': zone.ty = Math.min(ty, fB-1); zone.th = fB - zone.ty; zone.tx = orig.tx; zone.tw = Math.max(1, tx - orig.tx + 1); break;
+    case 'ml': zone.tx = Math.min(tx, fR-1); zone.tw = fR - zone.tx; break;
+    case 'mr': zone.tx = orig.tx; zone.tw = Math.max(1, tx - orig.tx + 1); break;
+    case 'bl': zone.tx = Math.min(tx, fR-1); zone.tw = fR - zone.tx; zone.ty = orig.ty; zone.th = Math.max(1, ty - orig.ty + 1); break;
+    case 'bm': zone.ty = orig.ty; zone.th = Math.max(1, ty - orig.ty + 1); break;
+    case 'br': zone.tx = orig.tx; zone.ty = orig.ty; zone.tw = Math.max(1, tx - orig.tx + 1); zone.th = Math.max(1, ty - orig.ty + 1); break;
+  }
+}
+
+// --- Zone play-mode logic ---
+function checkZoneTriggers() {
+  const cx = player.x + player.width / 2;
+  const cy = player.y + player.height / 2;
+  for (const zone of triggerZones) {
+    if (zone.level !== currentLevel) continue;
+    const zx = zone.tx * tileSize, zy = zone.ty * tileSize;
+    const zw = zone.tw * tileSize, zh = zone.th * tileSize;
+    const inside = cx >= zx && cx <= zx + zw && cy >= zy && cy <= zy + zh;
+    if (inside && !zone._triggered) {
+      zone._triggered = true;
+      SystematicAPI.trigger("onZoneEnter", player, zone);
+      executeZoneAction(zone);
+    } else if (!inside && zone._triggered) {
+      zone._triggered = false;
+      SystematicAPI.trigger("onZoneExit", player, zone);
+    }
+  }
+}
+
+function executeZoneAction(zone) {
+  switch (zone.action) {
+    case "none":
+      break;
+    case "nextLevel":
+      if (currentLevel < levels.length - 1) {
+        currentLevel++;
+        level = levels[currentLevel];
+        player.x = spawnPoint.x = 100; player.y = spawnPoint.y = 100; player.vx = player.vy = 0;
+        refreshLevelLabel();
+        SystematicAPI.trigger("onLevelChange", currentLevel);
+      }
+      break;
+    case "teleport": {
+      const target = triggerZones.find(z => z.id === zone.actionParams.zoneId && z !== zone);
+      if (target) {
+        player.x = target.tx * tileSize + (target.tw * tileSize - player.width) / 2;
+        player.y = target.ty * tileSize + (target.th * tileSize - player.height) / 2;
+        player.vx = player.vy = 0;
+        // Briefly suppress re-trigger in the destination zone
+        target._triggered = true;
+        setTimeout(() => { target._triggered = false; }, 200);
+      }
+      break;
+    }
+    case "spawnpoint":
+      setSpawnPoint(
+        zone.tx * tileSize + (zone.tw * tileSize - player.width) / 2,
+        zone.ty * tileSize + (zone.th * tileSize - player.height) / 2
+      );
+      SystematicAPI.trigger("onSpawnPointSet", spawnPoint, zone);
+      break;
+    case "checkpoint":
+      setSpawnPoint(
+        zone.tx * tileSize + (zone.tw * tileSize - player.width) / 2,
+        zone.ty * tileSize + (zone.th * tileSize - player.height) / 2
+      );
+      showOverlayMessage(zone.actionParams.message || "✔ Checkpoint!");
+      SystematicAPI.trigger("onCheckpoint", spawnPoint, zone);
+      break;
+    case "killPlayer":
+      respawnPlayer();
+      SystematicAPI.trigger("onPlayerKilled", player, zone);
+      break;
+    case "showMessage":
+      if (zone.actionParams.message) showOverlayMessage(zone.actionParams.message, zone.actionParams.duration || 2500);
+      SystematicAPI.trigger("onZoneMessage", zone.actionParams.message, zone);
+      break;
+  }
+}
+
+// --- Zone save / load ---
+function saveZones() {
+  localStorage.setItem('sysZones', JSON.stringify({ zones: triggerZones, nextId: zoneNextId }));
+}
+function loadZones() {
+  try {
+    const raw = localStorage.getItem('sysZones');
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    triggerZones = data.zones || [];
+    zoneNextId = data.nextId ?? (triggerZones.length ? Math.max(...triggerZones.map(z => z.id)) + 1 : 1);
+  } catch {}
+}
+loadZones();
+
+// --- Zone Properties Panel (created programmatically) ---
+const zonePropPanel = document.createElement('div');
+zonePropPanel.id = 'zonePropPanel';
+zonePropPanel.style.cssText = [
+  'display:none','position:fixed','right:20px','top:50%','transform:translateY(-50%)',
+  'background:#1a1a2e','color:#eee','padding:1em 1.2em','border-radius:10px',
+  'z-index:500','min-width:230px','border:1px solid #446','box-shadow:0 4px 20px #0008',
+  'font-family:sans-serif','font-size:14px'
+].join(';');
+zonePropPanel.innerHTML = `
+  <h3 style="margin:0 0 0.8em;color:#7af;font-size:15px;">🎯 Zone Properties</h3>
+  <label style="display:block;margin-bottom:0.5em">Label
+    <input id="zoneLabelInput" type="text" placeholder="optional label"
+      style="display:block;width:100%;box-sizing:border-box;margin-top:3px;padding:4px 6px;background:#2a2a40;color:#eee;border:1px solid #556;border-radius:4px;">
+  </label>
+  <label style="display:block;margin-bottom:0.5em">Action
+    <select id="zoneActionSelect"
+      style="display:block;width:100%;box-sizing:border-box;margin-top:3px;padding:4px 6px;background:#2a2a40;color:#eee;border:1px solid #556;border-radius:4px;">
+      <option value="none">○ None (marker only)</option>
+      <option value="nextLevel">⮕ Next Level</option>
+      <option value="teleport">⤭ Teleport to Zone</option>
+      <option value="spawnpoint">📍 Set Spawnpoint</option>
+      <option value="checkpoint">✔ Checkpoint</option>
+      <option value="killPlayer">💀 Kill Player</option>
+      <option value="showMessage">💬 Show Message</option>
+    </select>
+  </label>
+  <div id="zoneParamsDiv" style="margin-bottom:0.8em;"></div>
+  <div style="display:flex;gap:0.5em;">
+    <button id="zoneApplyBtn" style="flex:1;padding:5px 8px;cursor:pointer;border-radius:4px;">Apply</button>
+    <button id="zoneDeleteBtn" style="flex:1;padding:5px 8px;cursor:pointer;border-radius:4px;border-color:#f88;color:#f88;">Delete</button>
+    <button id="zonePanelClose" style="padding:5px 10px;cursor:pointer;border-radius:4px;">✕</button>
+  </div>
+`;
+document.body.appendChild(zonePropPanel);
+
+const zoneLabelInput   = document.getElementById('zoneLabelInput');
+const zoneActionSelect = document.getElementById('zoneActionSelect');
+const zoneParamsDiv    = document.getElementById('zoneParamsDiv');
+
+function updateZoneParamsUI(action) {
+  const inputStyle = `display:block;width:100%;box-sizing:border-box;margin-top:3px;padding:4px 6px;background:#2a2a40;color:#eee;border:1px solid #556;border-radius:4px;`;
+  const hint = `<span style="color:#888;font-size:12px;">`;
+  if (action === 'none') {
+    zoneParamsDiv.innerHTML = `${hint}Visual marker only — no action is performed.</span>`;
+  } else if (action === 'nextLevel') {
+    zoneParamsDiv.innerHTML = `${hint}Player touching this zone advances to the next level.</span>`;
+  } else if (action === 'teleport') {
+    const others = triggerZones.filter(z => z !== selectedZone);
+    zoneParamsDiv.innerHTML = `<label style="display:block">Target Zone ID
+      <select id="zoneTargetId" style="${inputStyle}">
+        ${others.map(z => `<option value="${z.id}">${z.id}: ${z.label || z.action}</option>`).join('') || '<option value="">— no other zones —</option>'}
+      </select></label>`;
+  } else if (action === 'spawnpoint') {
+    zoneParamsDiv.innerHTML = `${hint}Entering this zone sets the player's respawn position to the zone's center.</span>`;
+  } else if (action === 'checkpoint') {
+    zoneParamsDiv.innerHTML = `<label style="display:block">Message (optional)
+      <input id="zoneCheckpointMsg" type="text" placeholder="✔ Checkpoint!" style="${inputStyle}"></label>
+      ${hint}Sets respawn here and optionally shows a message.</span>`;
+  } else if (action === 'killPlayer') {
+    zoneParamsDiv.innerHTML = `${hint}Instantly respawns the player at the last spawnpoint or checkpoint.</span>`;
+  } else if (action === 'showMessage') {
+    zoneParamsDiv.innerHTML = `<label style="display:block">Message
+      <input id="zoneMessageText" type="text" placeholder="Hello, world!" style="${inputStyle}"></label>
+      <label style="display:block;margin-top:0.4em">Duration (ms)
+      <input id="zoneMessageDuration" type="number" value="2500" min="500" step="100" style="${inputStyle}"></label>`;
+  }
+}
+
+function openZonePanel(zone) {
+  zoneLabelInput.value      = zone.label  || '';
+  zoneActionSelect.value    = zone.action || 'none';
+  updateZoneParamsUI(zone.action);
+  if (zone.action === 'teleport')    { const el = document.getElementById('zoneTargetId');      if (el) el.value = zone.actionParams.zoneId  ?? ''; }
+  if (zone.action === 'checkpoint')  { const el = document.getElementById('zoneCheckpointMsg'); if (el) el.value = zone.actionParams.message  || ''; }
+  if (zone.action === 'showMessage') {
+    const elT = document.getElementById('zoneMessageText');     if (elT) elT.value = zone.actionParams.message  || '';
+    const elD = document.getElementById('zoneMessageDuration'); if (elD) elD.value = zone.actionParams.duration ?? 2500;
+  }
+  zonePropPanel.style.display = 'block';
+}
+
+zoneActionSelect.addEventListener('change', e => updateZoneParamsUI(e.target.value));
+
+document.getElementById('zoneApplyBtn').addEventListener('click', () => {
+  if (!selectedZone) return;
+  selectedZone.label  = zoneLabelInput.value.trim();
+  selectedZone.action = zoneActionSelect.value;
+  selectedZone.actionParams = {};
+  if (selectedZone.action === 'teleport') {
+    const el = document.getElementById('zoneTargetId');
+    selectedZone.actionParams.zoneId = el ? parseInt(el.value) : null;
+  } else if (selectedZone.action === 'checkpoint') {
+    const el = document.getElementById('zoneCheckpointMsg');
+    selectedZone.actionParams.message = el ? el.value.trim() : '';
+  } else if (selectedZone.action === 'showMessage') {
+    const elT = document.getElementById('zoneMessageText');
+    const elD = document.getElementById('zoneMessageDuration');
+    selectedZone.actionParams.message  = elT ? elT.value.trim() : '';
+    selectedZone.actionParams.duration = elD ? parseInt(elD.value) : 2500;
+  }
+  saveZones();
+  zonePropPanel.style.display = 'none';
+});
+
+document.getElementById('zoneDeleteBtn').addEventListener('click', () => {
+  if (!selectedZone) return;
+  const idx = triggerZones.indexOf(selectedZone);
+  if (idx !== -1) triggerZones.splice(idx, 1);
+  selectedZone = null;
+  zoneEditorState = "idle";
+  saveZones();
+  zonePropPanel.style.display = 'none';
+});
+
+document.getElementById('zonePanelClose').addEventListener('click', () => {
+  zonePropPanel.style.display = 'none';
+});
+
+// --- Zone editor mouse interactions ---
+canvas.addEventListener("mousedown", e => {
+  if (mode !== "zone" || e.button !== 0) return;
+  const mx = e.offsetX, my = e.offsetY;
+  const tx = Math.floor((mx + camX) / tileSize);
+  const ty = Math.floor((my + camY) / tileSize);
+
+  // Hit-test resize handles of selected zone first
+  if (selectedZone && (zoneEditorState === "selected" || zoneEditorState === "moving")) {
+    const handle = getHandleAtMouse(selectedZone, mx, my);
+    if (handle) {
+      zoneEditorState = "resizing";
+      zoneResizeHandle = handle;
+      zoneResizeOrigin = { tx: selectedZone.tx, ty: selectedZone.ty, tw: selectedZone.tw, th: selectedZone.th };
+      return;
+    }
+  }
+
+  // Hit-test zone bodies
+  const zone = getZoneAtMouse(mx, my);
+  if (zone) {
+    selectedZone = zone;
+    zoneEditorState = "moving";
+    zoneMoveOffset = { dtx: tx - zone.tx, dty: ty - zone.ty };
+    zonePropPanel.style.display = 'none';
+    return;
+  }
+
+  // Start drawing a new zone
+  selectedZone = null;
+  zonePropPanel.style.display = 'none';
+  zoneEditorState = "drawing";
+  zoneDrawStart = { tx, ty };
+  zoneDrawEnd   = { tx, ty };
+});
+
+canvas.addEventListener("mousemove", e => {
+  if (mode !== "zone") return;
+  const mx = e.offsetX, my = e.offsetY;
+  const tx = Math.floor((mx + camX) / tileSize);
+  const ty = Math.floor((my + camY) / tileSize);
+
+  if (zoneEditorState === "drawing") {
+    zoneDrawEnd = { tx, ty };
+    canvas.style.cursor = "crosshair";
+  } else if (zoneEditorState === "moving" && selectedZone) {
+    selectedZone.tx = Math.max(0, tx - zoneMoveOffset.dtx);
+    selectedZone.ty = Math.max(0, ty - zoneMoveOffset.dty);
+    canvas.style.cursor = "grab";
+  } else if (zoneEditorState === "resizing" && selectedZone) {
+    applyZoneResize(selectedZone, zoneResizeHandle, tx, ty, zoneResizeOrigin);
+    canvas.style.cursor = "nwse-resize";
+  } else {
+    // Cursor hints for hover
+    if (selectedZone) {
+      const handle = getHandleAtMouse(selectedZone, mx, my);
+      canvas.style.cursor = handle ? "nwse-resize" : (getZoneAtMouse(mx, my) ? "grab" : "crosshair");
+    } else {
+      canvas.style.cursor = getZoneAtMouse(mx, my) ? "grab" : "crosshair";
+    }
+  }
+});
+
+window.addEventListener("mouseup", e => {
+  if (mode !== "zone" || e.button !== 0) return;
+  const mx = e.offsetX !== undefined ? e.offsetX : e.clientX - canvas.getBoundingClientRect().left;
+  const my = e.offsetY !== undefined ? e.offsetY : e.clientY - canvas.getBoundingClientRect().top;
+  const tx = Math.floor((mx + camX) / tileSize);
+  const ty = Math.floor((my + camY) / tileSize);
+
+  if (zoneEditorState === "drawing" && zoneDrawStart) {
+    const tx1 = Math.min(zoneDrawStart.tx, tx), ty1 = Math.min(zoneDrawStart.ty, ty);
+    const tx2 = Math.max(zoneDrawStart.tx, tx), ty2 = Math.max(zoneDrawStart.ty, ty);
+    if (tx2 - tx1 >= 0 && ty2 - ty1 >= 0) {
+      const zone = { id: zoneNextId++, level: currentLevel, tx: tx1, ty: ty1, tw: tx2 - tx1 + 1, th: ty2 - ty1 + 1, action: "none", actionParams: {}, label: "", _triggered: false };
+      triggerZones.push(zone);
+      selectedZone = zone;
+      openZonePanel(zone);
+    }
+    zoneEditorState = "selected";
+    zoneDrawStart = null; zoneDrawEnd = null;
+  } else if (zoneEditorState === "moving") {
+    zoneEditorState = "selected";
+    zoneMoveOffset = null;
+    saveZones();
+  } else if (zoneEditorState === "resizing") {
+    zoneEditorState = "selected";
+    zoneResizeHandle = null; zoneResizeOrigin = null;
+    saveZones();
+  }
+  canvas.style.cursor = "default";
+});
+
+// --- Zone Mode toggle button (added to controls panel) ---
+(function() {
+  const btn = document.createElement('button');
+  btn.id = 'zoneModeBtn';
+  btn.textContent = 'Zone Edit';
+  btn.style.width = '150px';
+  btn.onclick = () => {
+    if (mode === "play") return;
+    mode = mode === "zone" ? "edit" : "zone";
+    btn.style.background = mode === "zone" ? "#224" : "";
+    btn.style.outline    = mode === "zone" ? "2px solid #55aaff" : "";
+    selectedZone = null;
+    zoneEditorState = "idle";
+    zonePropPanel.style.display = 'none';
+    canvas.style.cursor = "default";
+  };
+  document.getElementById('controls').appendChild(btn);
+})();
 
 // Start
 updateCategorySelector();

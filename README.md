@@ -80,12 +80,6 @@ A web-based **pixel platformer level editor** and playtester—fully in your bro
 - As you edit, the URL updates in real-time—copy/paste to share your exact levels!  
 - Opening someone’s link decodes the hash and loads their levels instantly, no file download required.
 
-### Online Levels
-- You can publish levels and share them using an unique name.
-- Once your level is published, you can share that name and other players with that name will be able to load it using the Load Shared Level Button.
-- Or you can find it in the level browser.
-  ![Level Browser](assets/readme-imgs/levelbrowser.png)
-
 ## Installation
 
 1. Clone or download this repo  
@@ -115,13 +109,91 @@ A web-based **pixel platformer level editor** and playtester—fully in your bro
 - **+ Add Level**: create a blank level  
 - **Save All Levels**: download JSON & auto-save in browser  
 - **Load All Levels**: import JSON from disk  
-- **Restore Last Save**: reload from browser storage  
-- **Upload Level**: uploads your level
-- **Load Shared Level**: loads a level
 ### Playtest Mode  
 - **W / ↑**: jump  
 - **A / ←**, **D / →**: move  
 - **S / ↓**: drop through one-ways  
+
+---
+
+## Trigger Zone System
+
+Trigger zones let you define rectangular areas on the map that fire actions when the player walks into them. They are created and managed in **Zone Edit** mode and persist alongside your levels.
+
+### How to Use
+
+1. Open the controls panel (top-right) and click **Zone Edit**
+2. **Click and drag** on the canvas to draw a new zone
+3. A property panel appears on the right — set the **Action**, optional **Label**, and any action-specific parameters
+4. Click **Apply** to confirm, or **Delete** to remove the zone
+5. **Right-click** an existing zone to reopen its property panel
+6. **Drag** a zone body to move it; drag its **corner/edge handles** to resize
+7. Press **Delete** while a zone is selected to remove it
+8. Click **Playtest** to test zones live — switch back to edit mode to reset them
+
+### Zone Actions
+
+| Action | Color | Description |
+|---|---|---|
+| **None** | Gray | Visual marker only — no gameplay effect |
+| **Next Level** | Green | Advances to the next level when the player enters |
+| **Teleport** | Blue | Teleports the player to the center of another zone by ID |
+| **Spawnpoint** | Yellow | Sets the player's respawn position; also used as the initial spawn when playtesting starts |
+| **Checkpoint** | Orange | Sets the respawn position and optionally displays a message |
+| **Kill Player** | Red | Instantly respawns the player at the last spawnpoint or checkpoint |
+| **Show Message** | Purple | Displays a custom text message on screen for a configurable duration (ms) |
+
+### Zone-related Events
+
+Listen to these via `SystematicAPI.on(eventName, fn)`:
+
+| Event | Arguments | When it fires |
+|---|---|---|
+| `onZoneEnter` | `player, zone` | Player enters any zone |
+| `onZoneExit` | `player, zone` | Player exits any zone |
+| `onSpawnPointSet` | `spawnPoint, zone` | A **Spawnpoint** zone is activated |
+| `onCheckpoint` | `spawnPoint, zone` | A **Checkpoint** zone is activated |
+| `onPlayerKilled` | `player, zone` | A **Kill Player** zone triggers |
+| `onZoneMessage` | `message, zone` | A **Show Message** zone triggers |
+| `onPlayerRespawn` | `player` | The player respawns after being killed |
+| `onLevelChange` | `levelIndex` | A **Next Level** zone advances the level |
+
+### Zone Object Structure
+
+Each zone passed to event listeners has these properties:
+
+```js
+{
+  id: 3,                    // unique zone ID (auto-assigned)
+  level: 0,                 // which level this zone belongs to
+  tx: 5, ty: 2,             // top-left position in tile coordinates
+  tw: 4, th: 3,             // width and height in tiles
+  action: "checkpoint",     // zone action type (see table above)
+  label: "Mid Boss",        // optional display label
+  actionParams: {           // action-specific data
+    message: "Checkpoint!"  // e.g. for checkpoint / showMessage
+  }
+}
+```
+
+### Example: Listening to Zone Events
+
+```js
+// Flash the screen red when the player enters a kill zone
+SystematicAPI.on("onPlayerKilled", (player, zone) => {
+  console.log(`Player killed by zone #${zone.id} — respawning`);
+});
+
+// Log every zone the player enters
+SystematicAPI.on("onZoneEnter", (player, zone) => {
+  console.log(`Entered zone "${zone.label || zone.action}" #${zone.id}`);
+});
+
+// React specifically to checkpoints
+SystematicAPI.on("onCheckpoint", (spawnPoint, zone) => {
+  console.log(`Checkpoint saved at tile (${spawnPoint.x}, ${spawnPoint.y})`);
+});
+```
 
 ---
 
@@ -192,6 +264,15 @@ Common hooks include:
 * **`onMouseUp(x, y, button)`**  
   *Called when the user releases a mouse button. Same arguments as `onMouseDown`.*
 
+* **`onKeyUp(key)`**  
+  Called when a key is released. Returns the key string (same format as `onKeyDown`).
+
+* **`onTilePlaced(x, y, layer, tileId)`**  
+  Fired in **edit mode** whenever a tile is painted onto the map. `x` and `y` are the **pixel** coordinates of the tile's top-left corner (i.e. `tileCol * tileSize` and `tileRow * tileSize`). `layer` is the layer index (0 = background, 1 = terrain). `tileId` is the ID of the tile that was just placed. Fires even when painting over an existing tile with the same ID is skipped — only fires when the tile actually changes.
+
+* **`onTileRemoved(x, y, layer, tileId)`**  
+  Fired in **edit mode** whenever a non-empty tile is overwritten or erased. Same coordinate and argument format as `onTilePlaced`. `tileId` is the ID of the tile that was just removed. Only fires when the tile being replaced was not already empty (ID 0).
+
 ---
 
 ### API Helper Functions
@@ -220,7 +301,7 @@ The API now includes a wide range of helper functions for modding and scripting:
 - **`SystematicAPI.saveTileAreaTemplate(x, y, w, h, name)`**
   Saves a rect selection area of the level into the localstorage, define an unique name for it
 
-- **`SystematicAPI.  api.loadTileAreaTemplate(x, y, name)`**
+- **`SystematicAPI.api.loadTileAreaTemplate(x, y, name)`**
   Loads a saved template from localstorage into a specified position of the level, use the unique name to load it
 
 - **`SystematicAPI.setTileAt(x, y, layer, id)`**  
@@ -308,6 +389,38 @@ The API now includes a wide range of helper functions for modding and scripting:
 
 - **`SystematicAPI.triggerCancelable(eventName, ...args)`**  
   Trigger an event, cancelable if any listener returns `false`.
+
+---
+
+### Example: React to Tile Placement & Removal
+
+`onTilePlaced` and `onTileRemoved` fire whenever the editor paints a tile. Use them to trigger effects, update game state, or log changes.
+
+```js
+// Emit sparks whenever a tile is placed in edit mode
+SystematicAPI.registerParticleEmitter("placeSpark", {
+  max: 6,
+  lifetime: [0.1, 0.25],
+  velocity: { x: [-40, 40], y: [-60, -10] },
+  gravity: 120,
+  color: ["#fff", "#adf", "#8cf"],
+  size: [1, 2]
+});
+
+SystematicAPI.on("onTilePlaced", (x, y, layer, tileId) => {
+  // x, y are pixel coords — pass them straight to the emitter
+  SystematicAPI.emitParticles("placeSpark", x, y);
+  console.log(`Placed tile ${tileId} on layer ${layer} at pixel (${x}, ${y})`);
+});
+
+SystematicAPI.on("onTileRemoved", (x, y, layer, tileId) => {
+  console.log(`Removed tile ${tileId} from layer ${layer} at pixel (${x}, ${y})`);
+});
+```
+
+> **Tip:** To convert pixel coordinates back to tile grid coordinates, divide by `tileSize`:  
+> `const tileCol = x / tileSize;`  
+> `const tileRow = y / tileSize;`
 
 ---
 
@@ -508,7 +621,7 @@ SystematicAPI.on("onPlayerTouchGround", (player) => {
 });
 ```
 
-This creates a satisfying dust effect under the player on landing! 🌫️
+This creates a satisfying dust effect under the player on landing!
 
 ---
 

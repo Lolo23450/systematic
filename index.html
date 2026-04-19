@@ -16,20 +16,18 @@
       <button id="saveLevel"   style="width:150px;">Save All Levels</button>
       <button id="loadLevel"   style="width:150px;">Load All Levels</button>
       <input type="file" id="loadLevelFile" accept=".json" style="display:none" />
-      <button onclick="uploadCurrentLevel()">Upload Level</button>
-      <button onclick="loadLevelFromFirebase()">Load Shared Level</button>
-      <button id="browseShared">Browse Shared Levels</button>
       <button id="viewDocsBtn">Features & Docs</button>
     </div>
   </div>
-  <div id="paletteWrapper" style="width:824px; margin:10px auto; background:#111; overflow:hidden;">
-    <div id="levelControls" style="text-align:center; margin:10px;">
-      <button id="prevLevel">← Prev Level</button>
-      <span id="levelLabel">Level 1</span>
-      <button id="nextLevel">Next Level →</button>
-      <button id="addLevel">+ Add Level</button>
+  <div id="paletteWrapper" style="width:1350px; margin:10px auto; background:#111; overflow:hidden; border-radius:6px;">
+    <div id="levelControls" style="display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 14px; background:#1a1a1a; border-bottom:1px solid #333;">
+      <button id="prevLevel" style="padding:5px 14px; background:#2a2a3a; color:#bbb; border:1px solid #444; border-radius:5px; cursor:pointer; font-size:13px;">← Prev</button>
+      <span id="levelLabel" style="color:#ddd; font-size:14px; font-weight:600; min-width:110px; text-align:center; background:#222; padding:5px 14px; border-radius:5px; border:1px solid #383838;">Level 1</span>
+      <button id="nextLevel" style="padding:5px 14px; background:#2a2a3a; color:#bbb; border:1px solid #444; border-radius:5px; cursor:pointer; font-size:13px;">Next →</button>
+      <div style="width:1px; height:24px; background:#333; margin:0 4px;"></div>
+      <button id="addLevel" style="padding:5px 14px; background:#1e3a1e; color:#8f8; border:1px solid #2d5a2d; border-radius:5px; cursor:pointer; font-size:13px;">+ Add Level</button>
     </div>
-    <div id="Toolbar" style="display:flex; align-items:center; gap:0.5em; padding:8px; background:#222; margin:0 auto 10px; border-radius:4px; width:fit-content;">
+    <div id="Toolbar" style="display:flex; align-items:center; gap:0.5em; padding:8px 14px; background:#1a1a1a; margin:0 auto 10px; border-bottom:1px solid #333; flex-wrap:wrap;">
       <label style="color:#fff;">
         <input id="tileSearch" type="text" placeholder="Name or ID…" style="padding:4px; margin-left:6px; width:200px;">
       </label>
@@ -57,7 +55,7 @@
       <input type="file" id="loadSpriteLoader" accept=".json,.txt" style="display:none;" />
     </label>
     </div>
-    <div id="tileBrushes"></div>
+    <div id="tileBrushes" style="padding:8px 10px; display:flex; flex-wrap:wrap; gap:4px;"></div>
   </div>
   <div id="tileProps">
     <h3>Tile Properties</h3>
@@ -74,18 +72,6 @@
   <button id="spriteEditorSave">Save</button>
   <button id="spriteEditorCancel">Cancel</button>
 </div>
-<!-- Modal backdrop & window -->
-<div id="sharedModalBackdrop">
-  <div id="sharedModal">
-    <header>Shared Levels</header>
-    <ul id="sharedList">
-      <!-- populated dynamically -->
-    </ul>
-    <footer>
-      <button id="closeShared">Close</button>
-    </footer>
-  </div>
-</div>
 <div id="docsModal" class="modal-backdrop" style="display:none; align-items:center; justify-content:center;">
   <div class="modal" style="background:#222; color:#eee; width:80%; max-height:80%; overflow:auto; padding:1em; border-radius:4px;">
     <button id="closeDocs" style="float:right">✕</button>
@@ -95,33 +81,7 @@
 </body>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/lz-string/libs/lz-string.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
-<script>
-  // Firebase Configuration - Load from environment variables or fallback to development config
-  const firebaseConfig = {
-    apiKey: typeof FIREBASE_API_KEY !== 'undefined' ? FIREBASE_API_KEY : null,
-    authDomain: typeof FIREBASE_AUTH_DOMAIN !== 'undefined' ? FIREBASE_AUTH_DOMAIN : null,
-    databaseURL: typeof FIREBASE_DATABASE_URL !== 'undefined' ? FIREBASE_DATABASE_URL : null,
-    projectId: typeof FIREBASE_PROJECT_ID !== 'undefined' ? FIREBASE_PROJECT_ID : null,
-    storageBucket: typeof FIREBASE_STORAGE_BUCKET !== 'undefined' ? FIREBASE_STORAGE_BUCKET : null,
-    messagingSenderId: typeof FIREBASE_MESSAGING_SENDER_ID !== 'undefined' ? FIREBASE_MESSAGING_SENDER_ID : null,
-    appId: typeof FIREBASE_APP_ID !== 'undefined' ? FIREBASE_APP_ID : null
-  };
-
-  // Security check - warn if using development config in production
-  if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    if (typeof FIREBASE_API_KEY === 'undefined') {
-      console.warn('⚠️ Security Warning: Using development Firebase config in production environment');
-      console.warn('Please set up environment variables for production deployment');
-    }
-  }
-
-  // Initialize Firebase
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
-</script>
 
 <!--Sprites-->
 <script src="sprites.js"></script>
