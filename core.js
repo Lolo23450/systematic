@@ -1193,46 +1193,6 @@ function saveLevel() {
       );
     }
 
-    function uploadCurrentLevel() {
-      const levelData = levels[currentLevel];
-
-      if (!isValidLevelFormat(levelData)) {
-        return alert("Level data is invalid — must be a 2D array of [number,number].");
-      }
-
-      const name = prompt("Enter a unique name for this level:");
-      if (!name) return;
-
-      db.ref("levels/" + name).set(levelData, err => {
-        if (err) {
-          alert("Upload failed: " + err.message);
-        } else {
-          alert("Level uploaded as: " + name);
-        }
-      });
-    }
-
-    function loadLevelFromFirebase() {
-      const name = prompt("Enter level name to load:");
-      if (!name) return;
-
-      db.ref("levels/" + name).once("value", snapshot => {
-        const data = snapshot.val();
-        if (!data) {
-          return alert("No level found with name: " + name);
-        }
-        if (!isValidLevelFormat(data)) {
-          return alert("Loaded data is malformed. Aborting load.");
-        }
-
-        // Replace current level
-        levels[currentLevel] = data;
-        level = data;
-        refreshLevelLabel();
-        alert("Level loaded!");
-      });
-    }
-
 function getCell(col, row, layer) { if (col < 0 || col >= mapCols || row < 0 || row >= mapRows) return 0; return levels[currentLevel][row][col][layer]; }
 function isSolid(px, py) { const id = getCell(Math.floor(px / tileSize), Math.floor(py / tileSize), 1); return id !== 0 && id !== 27; }
 function isOneWayTile(px, py) { return getCell(Math.floor(px / tileSize), Math.floor(py / tileSize), 1) === 27; }
@@ -1424,6 +1384,8 @@ function createTileBrushes() {
   let idsToShow = cats[currentCategory] || [];
   if (tileSearchQuery) idsToShow = idsToShow.filter(idx => String(idx).includes(tileSearchQuery) || (sprites[idx]?.[0]?.name||"").toLowerCase().includes(tileSearchQuery));
 
+  idsToShow = idsToShow.filter(idx => idx !== 28);
+
   idsToShow.forEach(idx => {
     const c = document.createElement("canvas"); c.width = c.height = 64; c.classList.add('brush');
     if (idx === currentTile) c.classList.add('selected');
@@ -1528,6 +1490,9 @@ const ZONE_HANDLE_SIZE = 10;
 
 // --- Zone rendering ---
 function drawAllZones(editMode) {
+  if (editMode === false) {
+    return(editMode);
+  }
   for (const zone of triggerZones) {
     if (zone.level !== currentLevel) continue;
     const px = zone.tx * tileSize - camX;
